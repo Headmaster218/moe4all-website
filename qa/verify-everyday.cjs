@@ -86,7 +86,8 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
         await page.locator('[data-view="remote"]').press('Home');
         assert.equal(await page.locator('.product-carousel').getAttribute('data-current-view'), 'workspace');
         assert.equal(await page.locator('#carousel-play').getAttribute('aria-pressed'), 'true');
-        assert.equal(await page.locator('[data-agent-download]').evaluateAll(links => links.every(link => link.href === window.MOE4ALL_DATA.releases.agent.url)), true);
+        assert.equal(await page.locator('[data-agent-download]').evaluateAll(links => links.every(link => link.href === (window.MOE4ALL_DATA.releases.agent?.url || `https://github.com/${window.MOE4ALL_DATA.site.agentRepository}`))), true);
+        if (await page.evaluate(() => !window.MOE4ALL_DATA.releases.agent)) assert.equal(await page.locator('[data-agent-download]').first().innerText(), lang === 'en' ? 'Explore Agent' : '查看 Agent 项目');
         await page.locator('details').first().locator('summary').click();
         assert.equal(await page.locator('details').first().getAttribute('open'), '');
         if (lang === 'en') assert.match(await page.locator('details').first().locator('p').innerText(), /^No\./);

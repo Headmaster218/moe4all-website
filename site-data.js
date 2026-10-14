@@ -1,7 +1,8 @@
 window.MOE4ALL_DATA = {
   "site": {
     "schema": 1,
-    "productRepository": "Headmaster218/MoE4All",
+    "engineRepository": "Headmaster218/MoE4All",
+    "agentRepository": "Headmaster218/MoE4All-Agent",
     "websiteRepository": "Headmaster218/moe4all-website",
     "brand": "MoE4All",
     "carouselIntervalMs": 6000,
@@ -39,20 +40,8 @@ window.MOE4ALL_DATA = {
       "prerelease": false,
       "publishedAt": "2026-10-10T06:28:04Z"
     },
-    "enginePreview": {
-      "version": "0.11.0-rc.2",
-      "tag": "release-0.11.0-rc.2",
-      "url": "https://github.com/Headmaster218/MoE4All/releases/tag/release-0.11.0-rc.2",
-      "prerelease": true,
-      "publishedAt": "2026-10-14T07:06:22Z"
-    },
-    "agent": {
-      "version": "0.10.0-preview.9",
-      "tag": "agent-v0.10.0-preview.9",
-      "url": "https://github.com/Headmaster218/MoE4All/releases/tag/agent-v0.10.0-preview.9",
-      "prerelease": true,
-      "publishedAt": "2026-10-14T14:24:29Z"
-    }
+    "enginePreview": null,
+    "agent": null
   },
   "benchmarks": {
     "schema": 1,

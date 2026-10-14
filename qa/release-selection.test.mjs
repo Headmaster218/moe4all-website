@@ -45,3 +45,11 @@ test('reads release URLs from the configured product repository', () => {
   assert.equal(selected.engine.version, '1.2.3');
   assert.throws(() => selectReleases([release('release-1.2.3')], repository), /No uploaded stable/);
 });
+
+test('keeps Engine and Agent release sources separate, including an empty Agent source', () => {
+  const agentRepository = 'Headmaster218/MoE4All-Agent';
+  const engineReleases = [release('release-0.10.0'), release('agent-v9.9.9', true)];
+  const agentReleases = [release('agent-v0.11.0-preview.1', true, { html_url: `https://github.com/${agentRepository}/releases/tag/agent-v0.11.0-preview.1` })];
+  assert.equal(selectReleases(engineReleases, 'Headmaster218/MoE4All', { agentReleases, agentRepository }).agent.version, '0.11.0-preview.1');
+  assert.equal(selectReleases(engineReleases, 'Headmaster218/MoE4All', { agentReleases: [], agentRepository }).agent, null);
+});

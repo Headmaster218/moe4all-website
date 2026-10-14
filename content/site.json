@@ -1,6 +1,7 @@
 {
   "schema": 1,
-  "productRepository": "Headmaster218/MoE4All",
+  "engineRepository": "Headmaster218/MoE4All",
+  "agentRepository": "Headmaster218/MoE4All-Agent",
   "websiteRepository": "Headmaster218/moe4all-website",
   "brand": "MoE4All",
   "carouselIntervalMs": 6000,

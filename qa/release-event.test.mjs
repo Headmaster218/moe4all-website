@@ -28,3 +28,12 @@ test('an old notification cannot pin a version backwards or overwrite another co
   assert.equal(selected.engine.version, '0.11.0');
   assert.equal(selected.agent.version, '0.11.0-preview.2');
 });
+
+test('routes Agent notifications only to the configured independent Agent repository', () => {
+  const sources = { engineRepository: repository, agentRepository: 'Headmaster218/MoE4All-Agent' };
+  const notification = validateReleaseEvent(event('agent-release', 'agent-v0.11.0-preview.1', { repository: sources.agentRepository }), sources);
+  assert.equal(notification.repository, sources.agentRepository);
+  assert.throws(() => validateReleaseEvent(event('agent-release', 'agent-v0.11.0-preview.1'), sources), /component/);
+  assert.doesNotThrow(() => validateAnnouncedRelease([release(notification.tag, { html_url: `https://github.com/${sources.agentRepository}/releases/tag/${notification.tag}` })], notification));
+  assert.throws(() => validateAnnouncedRelease([], notification), /not published/);
+});

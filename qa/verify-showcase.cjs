@@ -39,8 +39,7 @@ const { pathToFileURL } = require('node:url');
       Object.defineProperty(window, 'MOE4ALL_DATA', {
         configurable: true, get: () => data,
         set: value => {
-          value.releases.agent.version = '9.8.7-preview.6';
-          value.releases.agent.url = 'https://github.com/Headmaster218/MoE4All/releases/tag/agent-v9.8.7-preview.6';
+          value.releases.agent = { version: '9.8.7-preview.6', url: 'https://github.com/Headmaster218/MoE4All-Agent/releases/tag/agent-v9.8.7-preview.6', prerelease: true };
           value.releases.enginePreview = null;
           value.releases.engine.version = '9.8.7';
           value.releases.engine.url = 'https://github.com/Headmaster218/MoE4All/releases/tag/release-9.8.7';
@@ -65,6 +64,23 @@ const { pathToFileURL } = require('node:url');
     assert.ok((await versionPage.locator('[data-release-announcement]').innerText()).includes('9.8.7'));
     assert.equal(await versionPage.locator('[data-release-link="enginePreview"]').first().isVisible(), false);
 
+    await versionPage.goto(pathToFileURL(path.join(root, 'everyday.html')).href);
+    const futureAgent = await versionPage.evaluate(() => {
+      const agent = window.MOE4ALL_DATA.releases.agent;
+      window.MOE4ALL_DATA.releases.agent = null;
+      window.MoeSite.renderReleases('zh');
+      return agent;
+    });
+    assert.equal(await versionPage.locator('[data-agent-download]').first().innerText(), '查看 Agent 项目');
+    assert.ok(await versionPage.locator('[data-agent-download]').evaluateAll(links => links.every(link => link.href === 'https://github.com/Headmaster218/MoE4All-Agent')));
+    assert.equal(await versionPage.locator('[data-agent-version]').first().innerText(), 'Agent · 项目主页');
+    await versionPage.evaluate(agent => { window.MOE4ALL_DATA.releases.agent = agent; window.MoeSite.renderReleases('zh'); }, futureAgent);
+    assert.ok(await versionPage.locator('[data-agent-download]').evaluateAll(links => links.every(link => link.dataset.downloadState === 'ready')));
+    await versionPage.locator('#language-toggle').click();
+    assert.match(await versionPage.locator('#start [data-agent-download]').innerText(), /Download the Windows package/);
+    await versionPage.evaluate(() => { window.MOE4ALL_DATA.releases.agent = null; window.MoeSite.renderReleases('en'); });
+    assert.equal(await versionPage.locator('[data-agent-download]').first().innerText(), 'Explore Agent');
+
     const native = await browser.newPage({ viewport: { width: 960, height: 620 }, reducedMotion: 'reduce' });
     for (const language of ['zh', 'en']) for (const view of ['workspace', 'models', 'memory', 'remote']) {
       await native.goto(pathToFileURL(path.join(root, 'demo.html')).href + `?lang=${language}&view=${view}`);
@@ -83,7 +99,7 @@ const { pathToFileURL } = require('node:url');
       await native.screenshot({ path: path.join(__dirname, `screenshots/demo-native-${view}-${language}.png`) });
     }
     assert.equal(errors.length, 0, errors.join('\n'));
-    const report = { status: 'passed', autoplay: true, hoverPauses: true, userPause: true, reducedMotion: true, sharedReleasePropagation: true, demoClippingChecks: 8, errors };
+    const report = { status: 'passed', autoplay: true, hoverPauses: true, userPause: true, reducedMotion: true, sharedReleasePropagation: true, pendingAgentFallbackAndRecovery: true, demoClippingChecks: 8, errors };
     fs.writeFileSync(path.join(__dirname, 'showcase-results.json'), JSON.stringify(report, null, 2));
     console.log(JSON.stringify(report, null, 2));
     await mock.close();

@@ -7,7 +7,7 @@ const releases = JSON.parse(await readFile(path.join(root, 'content/releases.jso
 const benchmarks = JSON.parse(await readFile(path.join(root, 'content/benchmarks.json'), 'utf8'));
 const site = JSON.parse(await readFile(path.join(root, 'content/site.json'), 'utf8'));
 const demo = JSON.parse(await readFile(path.join(root, 'content/demo.json'), 'utf8'));
-if (site.schema !== 1 || demo.schema !== 1 || demo.fictional !== true || !/^[\w.-]+\/[\w.-]+$/.test(site.productRepository)) throw new Error('Invalid site or demo content.');
+if (site.schema !== 1 || demo.schema !== 1 || demo.fictional !== true || [site.engineRepository, site.agentRepository].some(repository => !/^[\w.-]+\/[\w.-]+$/.test(repository))) throw new Error('Invalid site or demo content.');
 if (releases.schema !== 1 || benchmarks.schema !== 1) throw new Error('Unsupported content schema.');
 if (benchmarks.metric !== 'mean_aggregate_decode_tokens_per_second') throw new Error('Unexpected benchmark metric.');
 for (const model of benchmarks.models) {
