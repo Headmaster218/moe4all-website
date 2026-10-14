@@ -47,3 +47,17 @@ test('recognizes independent Agent release tags and prefers stable over preview'
   assert.equal(stable.version, '1.0.0');
   assert.equal(stable.prerelease, false);
 });
+
+test('stale browser cache cannot replace newer bundled Agent metadata when the API fails', async () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const vm = require('node:vm');
+  const model = require('../release-model.js');
+  const bundled = { schema: 1, engine: { version: '1.0.0' }, agent: { version: '1.9.0' } };
+  const stale = { time: Date.now(), releases: { ...bundled, agent: { version: '1.0.0' } } };
+  const window = { MoeReleaseModel: model, MOE4ALL_DATA: { site: { engineRepository: 'Headmaster218/MoE4All', agentRepository: repository }, releases: bundled } };
+  const context = { window, navigator: {}, document: { querySelectorAll: () => [] }, location: { protocol: 'https:' }, localStorage: { getItem: () => JSON.stringify(stale) }, addEventListener: () => {}, fetch: async () => ({ ok: false, status: 403 }), AbortSignal, URL, console };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../site-ui.js'), 'utf8'), context);
+  await window.MoeSite.refreshReleases();
+  assert.equal(window.MOE4ALL_DATA.releases.agent.version, '1.9.0');
+});

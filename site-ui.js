@@ -42,9 +42,11 @@
     });
     document.querySelectorAll("iframe").forEach(sendReleases);
   }
-  function applyReleases(releases) {
+  function applyReleases(releases, fromCache = false) {
     if (releases?.schema !== 1 || !/^\d+\.\d+\.\d+$/.test(releases.engine?.version || "")) return false;
     if (model.compareVersions(releases.engine.version, data.releases.engine.version) < 0) return false;
+    if (releases.agent && !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(releases.agent.version || "")) return false;
+    if (fromCache && data.releases.agent && (!releases.agent || model.compareVersions(releases.agent.version, data.releases.agent.version) < 0)) return false;
     data.releases = releases;
     renderReleases();
     window.dispatchEvent(new CustomEvent("moe-releases-updated"));
@@ -54,7 +56,7 @@
     if (!/^https?:$/.test(location.protocol)) return false;
     try {
       const saved = JSON.parse(localStorage.getItem(cacheKey));
-      if (saved && Date.now() >= saved.time && Date.now() - saved.time < cacheMs && applyReleases(saved.releases)) return true;
+      if (saved && Date.now() >= saved.time && Date.now() - saved.time < cacheMs && applyReleases(saved.releases, true)) return true;
     } catch {}
     try {
       const fetchSource = async repository => {
