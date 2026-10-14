@@ -65,7 +65,7 @@ MoE4All Agent 可以从已保存的记忆里找回相关约定：是读书会的
 
 MoE4All Engine 协调 **VRAM、RAM 和 SSD**：常用的专家靠近 GPU，需要时再把其他专家逐级送上来。让有限的显存，服务于远超显存容量的 MoE 模型。
 
-[![专家流动 GIF：热专家前移、冷专家淘汰，缺失专家从 SSD 经 RAM 进入 VRAM，再送往 GPU 计算](https://headmaster218.github.io/moe4all-website/assets/readme/expert-flow.gif)](https://headmaster218.github.io/moe4all-website/technical.html#engine)
+[![专家流动 GIF：热专家前移、冷专家淘汰，缺失专家从 SSD 经 RAM 进入 VRAM，再送往 GPU 计算](https://headmaster218.github.io/moe4all-website/assets/readme/expert-flow.gif?v=ram-800)](https://headmaster218.github.io/moe4all-website/technical.html#engine)
 
 *专家流动与 token 输出为原理示意，不是实时推理录像。点击进入官网，可暂停动效并查看完整过程。*
 

@@ -4,7 +4,7 @@
     create({ root, getLanguage }) {
       const model = window.MoeCacheStory.create();
       const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-      const timings = { request: 500, promote: 950, ssd: 2600, ram: 1400, gpu: 600, compute: 450, output: 950, idle: 650 };
+      const timings = { request: 500, promote: 950, ssd: 2600, ram: 800, gpu: 600, compute: 450, output: 950, idle: 650 };
       const selectors = { vram: "#expert-grid", ram: ".ram-grid", ssd: ".ssd-grid" };
       const nodes = { vram: new Map(), ram: new Map(), ssd: new Map() };
       const inputs = [], moves = new Map();
