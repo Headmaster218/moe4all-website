@@ -1,0 +1,17 @@
+# Add AFTER the Engine release and all assets are uploaded.
+# For manual publishing, replace RELEASE_TAG with the publish step's actual tag output.
+- name: Notify website of Engine release
+  if: ${{ success() && vars.WEBSITE_REPOSITORY != '' }}
+  continue-on-error: true
+  env:
+    GH_TOKEN: ${{ secrets.WEBSITE_DISPATCH_TOKEN }}
+    WEBSITE_REPOSITORY: ${{ vars.WEBSITE_REPOSITORY }}
+    PRODUCT_REPOSITORY: ${{ github.repository }}
+    RELEASE_TAG: ${{ github.event.release.tag_name || github.ref_name }}
+  shell: bash
+  run: |
+    test -n "$GH_TOKEN"
+    gh api --method POST "repos/$WEBSITE_REPOSITORY/dispatches" \
+      -f event_type=engine-release \
+      -f "client_payload[repository]=$PRODUCT_REPOSITORY" \
+      -f "client_payload[tag]=$RELEASE_TAG"

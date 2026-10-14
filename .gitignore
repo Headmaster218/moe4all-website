@@ -1,0 +1,14 @@
+qa/screenshots/
+qa/results.json
+qa/flow-results.json
+qa/everyday-results.json
+qa/showcase-results.json
+_site/
+qa/release-fixture.json
+.DS_Store
+Thumbs.db
+node_modules/
+.env
+.env.*
+*.log
+maintenance/

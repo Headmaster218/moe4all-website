@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "engine": {
+    "version": "0.10.0",
+    "tag": "release-0.10.0",
+    "url": "https://github.com/Headmaster218/MoE4All/releases/tag/release-0.10.0",
+    "prerelease": false,
+    "publishedAt": "2026-10-10T06:28:04Z"
+  },
+  "enginePreview": {
+    "version": "0.11.0-rc.2",
+    "tag": "release-0.11.0-rc.2",
+    "url": "https://github.com/Headmaster218/MoE4All/releases/tag/release-0.11.0-rc.2",
+    "prerelease": true,
+    "publishedAt": "2026-10-14T07:06:22Z"
+  },
+  "agent": {
+    "version": "0.10.0-preview.9",
+    "tag": "agent-v0.10.0-preview.9",
+    "url": "https://github.com/Headmaster218/MoE4All/releases/tag/agent-v0.10.0-preview.9",
+    "prerelease": true,
+    "publishedAt": "2026-10-14T14:24:29Z"
+  }
+}

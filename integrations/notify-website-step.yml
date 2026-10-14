@@ -1,0 +1,15 @@
+# Add this step AFTER the product release and all downloadable assets are uploaded.
+# WEBSITE_REPOSITORY: repository variable, for example Headmaster218/moe4all-website.
+# WEBSITE_DISPATCH_TOKEN: secret with Contents:write for the website repository only.
+# GITHUB_TOKEN cannot dispatch to a separate repository.
+- name: Notify MoE4All website
+  if: ${{ success() && vars.WEBSITE_REPOSITORY != '' }}
+  continue-on-error: true
+  env:
+    GH_TOKEN: ${{ secrets.WEBSITE_DISPATCH_TOKEN }}
+    WEBSITE_REPOSITORY: ${{ vars.WEBSITE_REPOSITORY }}
+  shell: bash
+  run: |
+    test -n "$GH_TOKEN"
+    gh api --method POST "repos/$WEBSITE_REPOSITORY/dispatches" \
+      -f event_type=product-release

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "version": "0.11.0",
+  "buildCommit": "fabf3e614a56efed66dfaa89d4fac3a10ec0c40b",
+  "binarySha256": "8a3c80cd8f8872778ae2425568f108562353d051a3aa002edff0d3819feeafff",
+  "measuredOn": "2026-10-13",
+  "source": "Original values verified against local release-0.11.0-benchmark manifests; FlashNext 30K Decode revised by the maintainer, exact revised build not supplied",
+  "metric": "mean_aggregate_decode_tokens_per_second",
+  "metricDefinition": "Within each measured round: total output tokens / slowest lane Decode duration. Arithmetic mean over three measured rounds after one warmup round.",
+  "hardware": { "gpu": "AMD Radeon RX 7900 XTX", "vramBudgetGiB": 24, "ramBudgetGiB": 48, "os": "Windows" },
+  "settings": { "mtp": false, "temperature": 0, "thinking": false, "kv": "Q8_0 K/V", "contextCapacity": 163840, "ubatch": 4096, "cpuThreads": 10, "configuredDecodeSlots": 3, "outputTokensPerLane": 512, "warmupRounds": 1, "measuredDecodeRounds": 3, "coldPrefillRequests": 1, "prefillCachedTokens": 0, "residentGpuLayers": 16 },
+  "contexts": [30000, 150000],
+  "models": [
+    { "id": "flashnext", "name": "FlashNext-176B · 4.27 bpw", "label": "FlashNext-176B", "detail": "4.27 bpw", "quantization": "Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64", "results": { "30000": { "decode": [50.44, 66.19, 71.20], "prefill": 1414.75, "decodeSource": "Maintainer revision; exact revised build not supplied" }, "150000": { "decode": [44.16, 49.50, 45.47], "prefill": 1445.50 } } },
+    { "id": "qwen35", "name": "Qwen3.6-35B · I-Balanced · ≈5.91 bpw", "label": "Qwen3.6-35B", "detail": "I-Balanced · ≈5.91 bpw", "quantization": "Qwen3.6-35B-A3B-APEX-I-Balanced", "storageEquivalent": { "parameters": 34660610688, "tensorPayloadBytes": 25613967872, "bpw": 5.911948431045486, "method": "Local GGUF file bytes minus aligned metadata header, multiplied by 8 / total tensor elements. Includes tensor alignment padding, excludes mmproj; storage-equivalent, not a uniform tensor quantization." }, "results": { "30000": { "decode": [80.49, 118.34, 110.78], "prefill": 2749.06 }, "150000": { "decode": [41.91, 50.87, 49.27], "prefill": 1169.40 } } }
+  ]
+}

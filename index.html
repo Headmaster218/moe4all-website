@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#191b1b">
+  <meta name="description" content="MoE4All：释放卡之潜力。消费级显卡的超显存模型推理、带记忆的本地 Agent、DeepSeek Harness 插件，以及长音频分析。">
+  <title>MoE4All · 释放卡之潜力</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="agent-showcase.css">
+  <script defer src="assets/lucide.min.js"></script>
+  <script defer src="site-data.js"></script>
+  <script defer src="site-ui.js"></script>
+  <script defer src="memory-model.js"></script>
+  <script defer src="memory.js"></script>
+  <script defer src="agent-showcase.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#engine">跳到产品</a>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="brand" href="#" aria-label="MoE4All 首页"><i data-lucide="layers-3"></i><span>MoE4All<span class="brand-dot">.</span></span></a>
+      <nav id="main-nav" aria-label="主导航">
+        <a href="#engine" data-en="Engine">推理引擎</a>
+        <a href="#agent">Agent</a>
+        <a href="#ecosystem" data-en="Plugins">插件生态</a>
+        <a href="#audio" data-en="In the Lab">研发中</a>
+        <a href="everyday.html" data-en="Quick introduction">快速了解</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="icon-button language-button" id="language-toggle" title="Switch to English" aria-label="Switch to English"><i data-lucide="languages"></i><span>EN</span></button>
+        <a class="github-link" href="https://github.com/Headmaster218/MoE4All" target="_blank" rel="noopener" title="GitHub"><i data-lucide="github"></i><span>GitHub</span></a>
+        <button class="button button-small button-light" data-download><span data-en="Get started">开始使用</span><i data-lucide="arrow-up-right"></i></button>
+        <button class="icon-button menu-toggle" id="menu-toggle" aria-controls="main-nav" aria-expanded="false" aria-label="打开导航"><i data-lucide="menu"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <img class="hero-image" src="assets/hardware-hero.png" alt="石墨色电路板上的图形处理器与显存芯片，硬件概念图" fetchpriority="high">
+      <div class="hero-inner container">
+        <a class="release-note" data-release-link="newestEngine" href="https://github.com/Headmaster218/MoE4All/releases" target="_blank" rel="noopener"><span class="status-dot"></span><span data-release-announcement>查看最新 Engine</span><i data-lucide="arrow-right"></i></a>
+        <h1 id="hero-title">MoE4All<span>.</span></h1>
+        <p class="hero-slogan" data-en="Unlock your hardware.">释放卡之潜力。</p>
+        <p class="hero-description" data-en="Big models. Your hardware. From local inference to an Agent with memory, bring more AI within reach.">让游戏显卡跑起超显存大模型。<br>从本地推理到有记忆的 Agent，让更多设备用上 AI。</p>
+        <div class="hero-actions">
+          <button class="button button-mint" data-download><i data-lucide="download"></i><span data-en="Choose your download">选择下载</span><i data-lucide="arrow-right"></i></button>
+          <a class="button button-outline" href="#engine"><span data-en="Explore the projects">认识这些项目</span><i data-lucide="arrow-down"></i></a>
+        </div>
+        <div class="hero-footnote"><i data-lucide="code-2"></i><span data-en="Local inference · Vulkan · Your choice of GPU">本地推理 · Vulkan · 不止一种显卡</span></div>
+      </div>
+      <span class="hero-caption" data-en="HARDWARE CONCEPT / AI-GENERATED">硬件概念图 / AI 生成</span>
+      <div class="hero-index"><span>01 / 04</span><span>LOCAL INTELLIGENCE</span></div>
+    </section>
+
+    <div class="hardware-strip">
+      <div class="container hardware-inner"><span class="hardware-label" data-en="Built for the hardware you have">从你手上的硬件出发</span><div class="hardware-brands"><span>AMD<span class="chip-corner">↗</span></span><span class="nvidia-word">NVIDIA</span><span class="intel-word">intel<span>®</span></span></div><span class="hardware-end">VULKAN POWERED<i data-lucide="cpu"></i></span></div>
+    </div>
+
+    <section class="section engine-section" id="engine" aria-labelledby="engine-title">
+      <div class="container">
+        <div class="section-topline"><span class="eyebrow"><span>01</span> / ENGINE</span><span class="tag tag-mint" data-release-tag="engine">发行版本</span></div>
+        <div class="engine-layout">
+          <div class="engine-copy">
+            <h2 id="engine-title" data-en="Your VRAM isn't<br>the limit.">显存有限。<br>模型，不必。</h2>
+            <p class="section-description" data-en="MoE4All coordinates VRAM, RAM and SSD. Keep active experts close to the GPU, and run models that don't fit in VRAM alone.">MoE4All 协调 VRAM、RAM 与 SSD，让活跃专家靠近 GPU。用分层存储与按需加载，运行远超显存容量的 MoE 模型。</p>
+            <ul class="feature-lines">
+              <li><i data-lucide="scan-line"></i><span data-en="Automatic memory planning, less manual tuning">自动规划资源，少一点手动折腾</span></li>
+              <li><i data-lucide="network"></i><span data-en="OpenAI-compatible APIs for your existing clients">OpenAI 兼容 API，接入你已有的客户端</span></li>
+              <li><i data-lucide="git-branch"></i><span data-en="Parallel sessions, long context and optional MTP">并发会话、长上下文与可选 MTP 加速</span></li>
+            </ul>
+            <div class="inline-links"><a class="text-link" data-release-link="engine" href="https://github.com/Headmaster218/MoE4All/releases" target="_blank" rel="noopener"><span data-en="Download the stable Engine">下载正式版引擎</span><i data-lucide="arrow-up-right"></i></a><a class="quiet-link" data-release-link="enginePreview" href="https://github.com/Headmaster218/MoE4All/releases" target="_blank" rel="noopener"><span data-en="Try the latest preview">试用最新测试版</span><i data-lucide="arrow-up-right"></i></a></div>
+          </div>
+          <div class="memory-visual" aria-label="模型存储分层示意">
+            <div class="memory-top"><span>THE MEMORY HIERARCHY</span><button class="icon-button" id="memory-toggle" title="暂停专家流动" aria-label="暂停专家流动" aria-pressed="false"><i data-lucide="pause"></i></button></div>
+            <div class="memory-request"><span class="request-label" data-en="4 EXPERTS / STEP">本轮 4 个专家</span><strong id="memory-expert"></strong><span id="memory-operation">4 VRAM HITS</span></div>
+            <div class="gpu-compute"><div class="gpu-compute-heading"><i data-lucide="cpu"></i><strong>GPU</strong><span data-en="COMPUTE UNITS">运算单元</span><span id="gpu-progress">0 / 4</span></div><div class="gpu-inputs" aria-label="四个专家运算单元"></div><div class="gpu-output"><span data-en="Simulated tokens">模拟 token</span><div id="generated-phrase" class="generated-phrase" aria-label="模拟 token 输出"></div></div></div>
+            <div class="compute-bridge"><i data-lucide="arrow-up"></i><span>VRAM → GPU</span><span data-en="CACHE HITS COMPUTE FIRST">命中先计算，miss 等补齐</span></div>
+            <div class="memory-tier tier-vram"><div class="tier-label"><i data-lucide="memory-stick"></i><strong>VRAM</strong><span data-en="HOT → COLD / LOGICAL ORDER">热 → 冷 / 逻辑队列</span></div><div class="tier-activity"><span data-tier-activity="gpu">热 24 / 48</span><span data-en="HOT AT THE LEFT · COLD AT THE RIGHT">左热 · 右冷</span></div><div class="expert-grid" id="expert-grid" aria-hidden="true"></div><div class="memory-status"><span id="memory-status"></span><span id="memory-route">VRAM → GPU</span></div></div>
+            <div class="transfer-channel" id="ram-transfer"><div class="transfer-caption"><i data-lucide="arrow-up"></i><span>RAM → VRAM</span><small data-en="LOAD & REPLACE">上传 · 替换冷槽位</small></div><span class="transfer-count" id="ram-transfer-count">按需上行 ↑</span></div>
+            <div class="memory-tier tier-ram"><div class="tier-label"><i data-lucide="memory-stick"></i><strong>RAM</strong><span data-en="HOT → COLD / HOST CACHE">热 → 冷 / 主机缓存</span></div><div class="tier-activity"><span data-tier-activity="ram">热 24 / 96</span><span data-en="RECENTLY USED EXPERTS MOVE LEFT">调用后前移，复用热专家</span></div><div class="ram-grid" aria-hidden="true"></div></div>
+            <div class="transfer-channel" id="ssd-transfer"><div class="transfer-caption"><i data-lucide="arrow-up"></i><span>SSD → RAM</span><small data-en="READ ON A CACHE MISS">miss 时按需读取</small></div><span class="transfer-count" id="ssd-transfer-count">按需上行 ↑</span></div>
+            <div class="memory-tier tier-ssd"><div class="tier-label"><i data-lucide="hard-drive"></i><strong>SSD</strong><span data-en="COMPLETE READ-ONLY WEIGHTS">完整只读权重</span></div><div class="tier-activity"><span data-tier-activity="ssd">热 24 / 192</span><span data-en="HOT → COLD / DISPLAY ORDER ONLY">热 → 冷 / 仅调整展示顺序</span></div><div class="ssd-grid" aria-hidden="true"></div></div>
+            <div class="heat-legend"><span><b class="active"></b><span data-en="In use">正在使用</span></span><span><b class="warm"></b><span data-en="Hot">热</span></span><span><b class="cold"></b><span data-en="Cold">冷</span></span><span><b class="miss"></b><span data-en="Missing">待补齐</span></span></div>
+            <p class="visual-note" data-en="Logical heat queues and simulated tokens, not live inference or a model's exact tokenization. Cache eviction does not write weights back to SSD.">逻辑冷热队列与模拟 token，非实时推理或模型真实分词。缓存回收不将权重写回 SSD。</p>
+          </div>
+        </div>
+        <div class="benchmark">
+          <div class="benchmark-heading"><div><span class="eyebrow" data-benchmark-label="heading">v0.11.0 / 实测吞吐量</span><h3 data-en="Real numbers. Real hardware.">性能，拿结果说话。</h3></div><div class="segmented" aria-label="测试上下文"><button class="active" data-context="30000" aria-pressed="true">30K <span data-en="context">上下文</span></button><button data-context="150000" aria-pressed="false">150K <span data-en="context">上下文</span></button></div></div>
+          <div class="benchmark-controls"><div class="segmented model-selector" aria-label="测试模型"><button class="active" data-model="flashnext" aria-pressed="true"><span>FlashNext-176B</span><span>4.27 bpw</span></button><button data-model="qwen35" aria-pressed="false"><span>Qwen3.6-35B</span><span>I-Balanced · ≈5.91 bpw</span></button></div><span data-en="MEAN AGGREGATE DECODE / tok/s">并发总 Decode 平均 / tok/s</span></div>
+          <div class="benchmark-body"><div class="benchmark-machine"><i data-lucide="cpu"></i><div><strong>RX 7900 XTX</strong><span data-en="Budgets: 24 GiB VRAM · 48 GiB RAM">预算：24 GiB VRAM · 48 GiB RAM</span><small>Windows · MTP OFF · Q8 KV</small></div></div><div class="benchmark-chart" aria-live="polite"><div class="benchmark-row"><span>×1</span><div class="bar-track"><div class="bar bar-mint" data-decode-bar="0"></div></div><strong data-decode-speed="0">50.44 <small>tok/s</small></strong></div><div class="benchmark-row"><span>×2</span><div class="bar-track"><div class="bar bar-mint" data-decode-bar="1"></div></div><strong data-decode-speed="1">66.19 <small>tok/s</small></strong></div><div class="benchmark-row"><span>×3</span><div class="bar-track"><div class="bar bar-mint" data-decode-bar="2"></div></div><strong data-decode-speed="2">71.20 <small>tok/s</small></strong></div></div><div class="prefill-result"><span>PREFILL</span><strong id="prefill-speed">1414.75</strong><small>tok/s</small><span data-en="Single cold request">单路冷请求</span></div></div>
+          <div class="benchmark-note"><p id="benchmark-note">×N 为并发会话数；Decode 预热后三轮平均，Prefill 为无缓存冷请求。v0.11.0 开发构建实测。</p><button class="benchmark-details-link" id="benchmark-details"><span data-en="All results & conditions">完整结果与条件</span><i data-lucide="arrow-up-right"></i></button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section agent-section" id="agent" aria-labelledby="agent-title">
+      <div class="container">
+        <div class="section-topline"><span class="eyebrow"><span>02</span> / AGENT</span><span class="tag" data-release-tag="agent">发行版本</span></div>
+        <div class="wide-heading"><div><h2 id="agent-title" data-en="Remember yesterday.<br>Plan tomorrow.">记得你的昨天，<br>陪你安排明天。</h2></div><div><p class="section-description" data-en="Find last week's plan. Schedule the next step. Continue on your phone. A local model, memory and everyday tools, together in your own workspace.">找回上周的约定，安排下一步，换到手机接着聊。把本地模型、记忆与日常工具放进自己的工作台，让每段对话都有下文。</p><a class="text-link" data-release-link="agent" href="https://github.com/Headmaster218/MoE4All/releases" target="_blank" rel="noopener"><span data-en="Try the integrated Agent">试用 Agent 整合包</span><i data-lucide="arrow-up-right"></i></a></div></div>
+        <div class="agent-gallery" aria-label="MoE4All 工作台演示">
+          <div class="agent-gallery-heading"><span class="agent-gallery-caption" data-en="MoE4All Agent · Demo workspace">MoE4All Agent · 演示工作区</span><div class="agent-gallery-tools"><span id="agent-count">01 / 04</span><button class="icon-button" id="agent-prev" title="上一页" aria-label="上一页"><i data-lucide="arrow-left"></i></button><button class="icon-button" id="agent-next" title="下一页" aria-label="下一页"><i data-lucide="arrow-right"></i></button><button class="icon-button" id="agent-play" title="暂停自动轮播" aria-label="暂停自动轮播" aria-pressed="false"><i data-lucide="pause"></i></button><button class="icon-button" id="expand-gallery" title="放大演示界面" aria-label="放大演示界面"><i data-lucide="maximize-2"></i></button></div></div>
+          <div class="agent-gallery-window"><div class="agent-gallery-track">
+            <div id="workspace-panel" class="agent-slide is-current" role="tabpanel" aria-labelledby="workspace-tab" data-slide="workspace"><div class="agent-slide-label"><i data-lucide="layout-dashboard"></i><span data-en="My workspace">我的工作台</span><span>01 / 04</span></div><iframe src="demo.html?view=workspace&amp;lang=zh" title="MoE4All 工作台演示" loading="lazy" tabindex="-1"></iframe></div>
+            <div id="models-panel" class="agent-slide" role="tabpanel" aria-labelledby="models-tab" data-slide="models"><div class="agent-slide-label"><i data-lucide="cpu"></i><span data-en="My models">我的模型</span><span>02 / 04</span></div><iframe src="demo.html?view=models&amp;lang=zh" title="MoE4All 模型管理演示" loading="lazy" tabindex="-1"></iframe></div>
+            <div id="memory-panel" class="agent-slide" role="tabpanel" aria-labelledby="memory-tab" data-slide="memory"><div class="agent-slide-label"><i data-lucide="brain"></i><span data-en="My memory">我的记忆</span><span>03 / 04</span></div><iframe src="demo.html?view=memory&amp;lang=zh" title="MoE4All 记忆管理演示" loading="lazy" tabindex="-1"></iframe></div>
+            <div id="remote-panel" class="agent-slide" role="tabpanel" aria-labelledby="remote-tab" data-slide="remote"><div class="agent-slide-label"><i data-lucide="smartphone"></i><span data-en="On my phone">手机接着聊</span><span>04 / 04</span></div><iframe src="demo.html?view=remote&amp;lang=zh" title="MoE4All 手机访问演示" loading="lazy" tabindex="-1"></iframe></div>
+          </div></div>
+          <div class="agent-gallery-tabs" role="tablist" aria-label="演示页面"><button id="workspace-tab" role="tab" aria-selected="true" aria-controls="workspace-panel" data-view="workspace"><span class="agent-gallery-dot"></span><span data-en="Workspace">工作台</span></button><button id="models-tab" role="tab" aria-selected="false" aria-controls="models-panel" data-view="models"><span class="agent-gallery-dot"></span><span data-en="Models">模型</span></button><button id="memory-tab" role="tab" aria-selected="false" aria-controls="memory-panel" data-view="memory"><span class="agent-gallery-dot"></span><span data-en="Memory">记忆</span></button><button id="remote-tab" role="tab" aria-selected="false" aria-controls="remote-panel" data-view="remote"><span class="agent-gallery-dot"></span><span data-en="Phone">手机</span></button></div>
+        </div>
+        <div class="agent-capabilities"><div><i data-lucide="history"></i><h3 data-en="Pick up where you left off">一句话，从头接上。</h3><p data-en="“What was that meeting we talked about last week?” Find the plan in the memories you kept.">“上周说的那个会，到底是哪天？”从留下的记忆里找回约定，不必翻遍聊天记录。</p></div><div><i data-lucide="calendar-clock"></i><h3 data-en="Let tomorrow get a head start">说件事，安排个时间。</h3><p data-en="“Every Monday morning, remind me to prepare the reading-club email.” Keep recurring tasks in your workspace.">“每周一早上，提醒我准备读书会邮件。”把日常安排变成工作台里的定时任务。</p></div><div><i data-lucide="smartphone"></i><h3 data-en="A different screen. The same conversation.">换个屏幕，接着聊。</h3><p data-en="Pair your phone and continue the same conversation, with the model still running on your computer.">配对手机，在外面也能接着聊。模型仍在自己的电脑上，记忆和话题不用重来。</p></div></div>
+        <div class="agent-local"><i data-lucide="shield-check"></i><div><h3 data-en="Some things belong on your own computer.">有些话，留在自己电脑里就好。</h3><p data-en="With a local model, your AI, conversations and memories stay local. Cloud models and online tools are connections you choose.">选择本地模型，AI、对话和记忆都留在本机。自己的计划、工作材料和私人想法，可以在自己的电脑里整理。云端模型与联网工具，由你决定是否连接。</p></div><a class="text-link" href="everyday.html#privacy"><span data-en="Get to know MoE4All">更多日常可能</span><i data-lucide="arrow-up-right"></i></a></div>
+      </div>
+    </section>
+
+    <section class="section ecosystem-section" id="ecosystem" aria-labelledby="ecosystem-title">
+      <div class="container">
+        <div class="section-topline"><span class="eyebrow"><span>03</span> / ECOSYSTEM</span><a class="quiet-link" href="https://github.com/Headmaster218/dsh-moe4all" target="_blank" rel="noopener"><span data-en="Built on DeepSeek Harness">基于 DeepSeek Harness</span><i data-lucide="arrow-up-right"></i></a></div>
+        <div class="wide-heading"><div><h2 id="ecosystem-title" data-en="More possibilities.<br>One familiar workspace.">能力，继续生长。</h2><p class="section-description" data-en="Our maintained plugins bring the pieces together. Already using DSH? Start with the MoE4All Provider.">用我们维护的插件，把需要的能力连接起来。<br>已经在用 DSH？从 MoE4All Provider 开始。</p></div><a class="button button-outline" href="https://github.com/Headmaster218/dsh-llm-moe4all/releases" target="_blank" rel="noopener"><i data-lucide="puzzle"></i><span data-en="Install into DSH">安装到现有 DSH</span><i data-lucide="arrow-up-right"></i></a></div>
+        <div class="filter-bar" role="group" aria-label="插件分类"><button class="active" data-filter="all" aria-pressed="true"><span data-en="All plugins">全部插件</span><span class="count">8</span></button><button data-filter="work" aria-pressed="false" data-en="Memory & tasks">记忆与任务</button><button data-filter="tools" aria-pressed="false" data-en="Everyday tools">日常工具</button><button data-filter="connect" aria-pressed="false" data-en="Connections">连接与生态</button></div>
+        <div class="plugin-grid">
+          <a class="plugin" data-category="connect" href="https://github.com/Headmaster218/dsh-llm-moe4all" target="_blank" rel="noopener"><div class="plugin-top"><i data-lucide="cpu"></i><i data-lucide="arrow-up-right"></i></div><h3>MoE4All Provider</h3><p data-en="Your local Engine, models and downloads, together in DSH.">在 DSH 内管理本地引擎、选择模型与下载模型。</p><span class="plugin-type" data-en="LOCAL INFERENCE">本地推理</span></a>
+          <a class="plugin" data-category="work" href="https://github.com/Headmaster218/dsh-mneme-moe4all" target="_blank" rel="noopener"><div class="plugin-top"><i data-lucide="brain"></i><i data-lucide="arrow-up-right"></i></div><h3>Mneme</h3><p data-en="Cross-session memory, conversation distillation and consolidation.">跨会话记忆、对话提炼与自动整理，延续项目上下文。</p><span class="plugin-type" data-en="LONG-TERM MEMORY">长期记忆</span></a>
+          <a class="plugin" data-category="connect" href="https://github.com/Headmaster218/dsh-remote-web-ui-moe4all" target="_blank" rel="noopener"><div class="plugin-top"><i data-lucide="smartphone"></i><i data-lucide="arrow-up-right"></i></div><h3>Remote Web UI</h3><p data-en="Pair a phone or another computer with your existing workspace.">配对手机或其他电脑，访问你的工作台。</p><span class="plugin-type" data-en="REMOTE ACCESS">远程访问</span></a>
+          <a class="plugin" data-category="work" href="https://github.com/Headmaster218/dsh-plugin-cron-moe4all" target="_blank" rel="noopener"><div class="plugin-top"><i data-lucide="clock-3"></i><i data-lucide="arrow-up-right"></i></div><h3>Cron</h3><p data-en="Schedule Agent work from a conversation or the sidebar.">通过自然语言或侧栏创建任务，让 Agent 按时执行。</p><span class="plugin-type" data-en="SCHEDULED TASKS">定时任务</span></a>
+          <a class="plugin" data-category="tools" href="https://github.com/Headmaster218/dsh-plugin-tts-moe4all" target="_blank" rel="noopener"><div class="plugin-top"><i data-lucide="audio-lines"></i><i data-lucide="arrow-up-right"></i></div><h3>Voice / TTS</h3><p data-en="Read replies aloud with Edge TTS and optional RVC voices.">朗读回复，提供 Edge TTS 与可选 RVC 自定义声音。</p><span class="plugin-type" data-en="READ ALOUD">语音朗读</span></a>
+          <a class="plugin" data-category="tools" href="https://github.com/Headmaster218/dsh-easyrewrite-moe4all" target="_blank" rel="noopener"><div class="plugin-top"><i data-lucide="square-pen"></i><i data-lucide="arrow-up-right"></i></div><h3>EasyRewrite</h3><p data-en="Edit, recall and revisit versions of your conversation.">编辑、撤回与切换消息版本，把对话调整到位。</p><span class="plugin-type" data-en="CONVERSATION EDITING">对话编辑</span></a>
+          <a class="plugin" data-category="tools" href="https://github.com/Headmaster218/dsh-web-search-brave-moe4all" target="_blank" rel="noopener"><div class="plugin-top"><i data-lucide="globe-2"></i><i data-lucide="arrow-up-right"></i></div><h3>Brave Search</h3><p data-en="Bring web search to your Agent with your own Brave API key.">用自己的 Brave API key，为 Agent 接入联网搜索。</p><span class="plugin-type" data-en="WEB SEARCH">联网搜索</span></a>
+          <a class="plugin" data-category="connect" href="https://github.com/Headmaster218/dsh-market-moe4all" target="_blank" rel="noopener"><div class="plugin-top"><i data-lucide="blocks"></i><i data-lucide="arrow-up-right"></i></div><h3>Plugin Market</h3><p data-en="Browse and discover extensions from the DSH community.">浏览与发现 DSH 社区插件，按需要扩展工作环境。</p><span class="plugin-type" data-en="COMMUNITY ECOSYSTEM">社区生态</span></a>
+        </div>
+        <p class="ecosystem-note" data-en="MoE4All-maintained editions. Each repository records its upstream source and attribution. Third-party services require their own configuration.">MoE4All 维护版本，各仓库保留上游来源与署名。第三方服务需按各插件要求配置。</p>
+      </div>
+    </section>
+
+    <section class="section audio-section" id="audio" aria-labelledby="audio-title">
+      <div class="container">
+        <div class="section-topline"><span class="eyebrow"><span>04</span> / IN THE LAB</span><span class="tag tag-amber"><span class="status-dot"></span><span data-en="In development">研发中</span></span></div>
+        <div class="audio-layout"><div><h2 id="audio-title" data-en="Give sound<br>a lasting trace.">让声音，<br>留下线索。</h2><p class="section-description" data-en="A long-audio project for local Chinese and English transcription, speaker activity, cross-recording voice association and resumable uploads.">面向长录音的本地分析：中英转写、说话人活动、跨录音声纹关联，以及可恢复的增量上传。</p><p class="research-boundary" data-en="The backend is in development, without a formal release or full quality acceptance. The Android recorder is currently a design-stage project.">后端仍在开发，尚无正式 release，整体质量待验收。Android 录音端目前处于设计阶段。</p><a class="text-link" href="https://github.com/Headmaster218/long-audio-backend" target="_blank" rel="noopener"><span data-en="Follow the audio project">了解长音频项目</span><i data-lucide="arrow-up-right"></i></a></div>
+          <div class="audio-visual"><div class="audio-visual-header"><span>LONG AUDIO / LOCAL ANALYSIS</span><i data-lucide="audio-lines"></i></div><div class="audio-wave" id="audio-wave" aria-hidden="true"></div><div class="audio-times"><span>00:00</span><span>01:00</span><span>02:00</span><span>03:00</span></div><div class="speaker-track"><span data-en="Speaker A">说话人 A</span><div><b style="--start:0%;--width:28%"></b><b style="--start:44%;--width:18%"></b><b style="--start:75%;--width:22%"></b></div></div><div class="speaker-track second"><span data-en="Speaker B">说话人 B</span><div><b style="--start:26%;--width:20%"></b><b style="--start:60%;--width:17%"></b></div></div><div class="audio-flow"><span><i data-lucide="mic"></i><span data-en="Record">录音</span></span><i data-lucide="arrow-right"></i><span><i data-lucide="file-audio"></i><span data-en="Transcribe">转写</span></span><i data-lucide="arrow-right"></i><span><i data-lucide="users-round"></i><span data-en="Associate">关联</span></span></div><small class="visual-note" data-en="Workflow illustration · not a measured recognition result">流程示意 · 非真实识别结果</small></div>
+        </div>
+        <div class="research-footer"><span data-en="NEXT FRONTIERS">下一站</span><p data-en="Speech, images, video. More ways to put local intelligence to work.">语音、图像、视频。让本地智能拥有更多用武之地。</p><a href="https://github.com/Headmaster218/long-audio-recorder-android" target="_blank" rel="noopener"><span data-en="Android recorder design">Android 录音端设计</span><i data-lucide="arrow-up-right"></i></a></div>
+      </div>
+    </section>
+
+    <section class="closing-section"><div class="container closing-inner"><div><span class="eyebrow">YOUR HARDWARE. YOUR INTELLIGENCE.</span><h2 data-en="AI, on your side.">让 AI，运行在你这边。</h2><p data-en="Start with the hardware you have. Build what comes next.">从已有的硬件出发，做下一件有意思的事。</p></div><button class="button button-mint" data-download><span data-en="Find your starting point">找到你的起点</span><i data-lucide="arrow-up-right"></i></button></div></section>
+  </main>
+
+  <footer><div class="container footer-top"><a class="brand" href="#"><i data-lucide="layers-3"></i><span>MoE4All<span class="brand-dot">.</span></span></a><div class="footer-links"><a href="https://github.com/Headmaster218/MoE4All" target="_blank" rel="noopener">GitHub</a><a href="https://github.com/Headmaster218/MoE4All/tree/main/documentation" target="_blank" rel="noopener" data-en="Documentation">文档</a><a href="https://github.com/Headmaster218/MoE4All/discussions" target="_blank" rel="noopener" data-en="Community">社区</a><a href="https://github.com/Headmaster218" target="_blank" rel="noopener" data-en="More projects">其他项目</a></div></div><div class="container footer-bottom"><p data-en="Built by John / Headmaster218 · With thanks to infr, DeepSeek Harness and the plugin community.">John / Headmaster218 维护 · 感谢 infr、DeepSeek Harness 与插件社区。</p><span>© 2026 MoE4All</span></div></footer>
+
+  <dialog id="download-dialog" aria-labelledby="download-title"><div class="dialog-header"><span class="eyebrow">GET STARTED</span><button class="icon-button" data-close-dialog aria-label="关闭" title="关闭"><i data-lucide="x"></i></button></div><h2 id="download-title" data-en="Choose your starting point.">选一个起点。</h2><p class="dialog-description" data-en="Start with an integrated workspace, the standalone Engine, or your existing DSH.">整合工作环境、独立引擎，或者你已有的 DSH。</p><div class="download-options"><a data-release-link="agent" href="https://github.com/Headmaster218/MoE4All/releases" target="_blank" rel="noopener"><i data-lucide="monitor"></i><div><strong>MoE4All Agent <span class="tag" data-release-tag="agent">发行版本</span></strong><p data-en="Windows integrated package · Engine, Harness and plugins included · Download model files separately">Windows 整合包 · 内含引擎、Harness 与插件 · 模型另行下载</p></div><i data-lucide="arrow-up-right"></i></a><a data-release-link="engine" href="https://github.com/Headmaster218/MoE4All/releases" target="_blank" rel="noopener"><i data-lucide="cpu"></i><div><strong>MoE4All Engine <span class="tag tag-mint" data-release-tag="engine">发行版本</span></strong><p data-en="Standalone inference · Terminal chat or an API for your client">独立推理引擎 · 终端对话或为已有客户端提供 API</p></div><i data-lucide="arrow-up-right"></i></a><a data-release-link="enginePreview" href="https://github.com/Headmaster218/MoE4All/releases" target="_blank" rel="noopener"><i data-lucide="flask-conical"></i><div><strong>Engine Preview <span class="tag tag-amber" data-release-tag="enginePreview">发行版本</span></strong><p data-en="Try the latest Engine candidate and help validate it.">试用最新引擎候选版本，参与验证。</p></div><i data-lucide="arrow-up-right"></i></a><a href="https://github.com/Headmaster218/dsh-llm-moe4all/releases" target="_blank" rel="noopener"><i data-lucide="puzzle"></i><div><strong>MoE4All Provider <span class="tag">DSH</span></strong><p data-en="Already use DeepSeek Harness? Add local inference with the plugin.">已有 DeepSeek Harness？安装插件，接入本地推理。</p></div><i data-lucide="arrow-up-right"></i></a></div><p class="dialog-footnote" data-en="Links open the project's GitHub Releases, including version notes and available assets.">将打开对应 GitHub Releases，查看版本说明与可用下载文件。</p></dialog>
+  <dialog id="benchmark-dialog" class="benchmark-dialog" aria-labelledby="benchmark-title"><div class="dialog-header"><span class="eyebrow">BENCHMARK / v0.11.0</span><button class="icon-button" data-close-dialog aria-label="关闭实测详情" title="关闭"><i data-lucide="x"></i></button></div><h2 id="benchmark-title" data-en="The numbers, in context.">结果，和它的前提。</h2><p class="dialog-description" data-en="Mean aggregate Decode throughput, tok/s. ×1 / ×2 / ×3 means one, two or three active sessions.">Decode 为并发总平均吞吐量，单位 tok/s。×1／×2／×3 为同时活跃的会话数。</p><div class="benchmark-table-wrap"><table><thead><tr><th data-en="Model / context">模型 / 上下文</th><th>×1</th><th>×2</th><th>×3</th><th>Prefill</th></tr></thead><tbody id="benchmark-table"></tbody></table></div><div class="benchmark-protocol"><p data-en="RX 7900 XTX · Windows · budgets: 24 GiB VRAM / 48 GiB RAM · Q8 K/V · temperature 0 · thinking OFF · MTP OFF · ubatch 4096 · 16 GPU-resident layers.">RX 7900 XTX · Windows · 24 GiB VRAM／48 GiB RAM 预算 · Q8 K/V · temperature 0 · thinking 关闭 · MTP 关闭 · ubatch 4096 · GPU resident 16 层。</p><p data-en="Decode: 512 tokens per session; one warmup and three measured rounds. Each round's total output tokens is divided by the slowest lane's Decode duration, then averaged. Prefill: one cold request per condition, cached tokens = 0.">Decode：每会话生成 512 tokens，预热一轮、实测三轮；每轮总输出 tokens 除以最慢会话 Decode 时间，再取平均。Prefill：每条件一次冷请求，cached tokens = 0。</p><p data-en="Results are frozen to the tested v0.11.0 development build. Publishing a new release does not change this benchmark dataset.">结果固定于所测 v0.11.0 开发构建。发布新版本不会自动改变这份性能数据。</p><a class="text-link" href="https://github.com/Headmaster218/MoE4All/commit/fabf3e614a56efed66dfaa89d4fac3a10ec0c40b" target="_blank" rel="noopener"><span data-en="Tested source commit">测试源码提交</span><code>fabf3e6</code><i data-lucide="arrow-up-right"></i></a></div></dialog>
+  <dialog id="image-dialog" class="image-dialog" aria-label="演示工作区大图"><button class="icon-button" data-close-dialog aria-label="关闭大图" title="关闭大图"><i data-lucide="x"></i></button><iframe id="expanded-agent" src="demo.html?view=workspace&amp;lang=zh" title="MoE4All 演示界面大图"></iframe></dialog>
+</body>
+</html>

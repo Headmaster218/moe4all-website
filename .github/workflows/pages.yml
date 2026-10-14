@@ -1,0 +1,47 @@
+name: Publish website to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  repository_dispatch:
+    types: [engine-release, agent-release, product-release]
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Validate release interfaces and cache story
+        run: node --test qa/release-selection.test.mjs qa/release-event.test.mjs qa/memory-model.test.cjs
+      - name: Synchronize product releases
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RELEASE_EVENT_PATH: ${{ github.event_name == 'repository_dispatch' && github.event_path || '' }}
+        run: node scripts/sync-releases.mjs
+      - uses: actions/configure-pages@v5
+      - name: Prepare static files
+        run: node scripts/build-site.mjs
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
