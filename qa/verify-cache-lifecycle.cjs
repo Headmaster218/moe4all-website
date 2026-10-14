@@ -6,7 +6,7 @@ const { pathToFileURL } = require('node:url');
   const browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' });
   const errors = [];
   try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, reducedMotion: 'no-preference' });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, reducedMotion: 'no-preference', locale: 'zh-CN' });
     page.on('pageerror', error => errors.push(error.message));
     await page.addInitScript(() => {
       const raf = window.requestAnimationFrame.bind(window); let time = 0;

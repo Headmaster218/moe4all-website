@@ -1,6 +1,19 @@
 (() => {
   "use strict";
   const model = window.MoeReleaseModel, data = window.MOE4ALL_DATA;
+  const languageKey = "moe4all-language";
+  function getPreferredLanguage() {
+    try {
+      const saved = localStorage.getItem(languageKey);
+      if (saved === "zh" || saved === "en") return saved;
+    } catch {}
+    const preferred = navigator.languages?.[0] || navigator.language || "en";
+    return /^zh(?:-|$)/i.test(preferred) ? "zh" : "en";
+  }
+  function rememberLanguage(value) {
+    if (value !== "zh" && value !== "en") return;
+    try { localStorage.setItem(languageKey, value); } catch {}
+  }
   let language = "zh", platform = model.detectPlatform(navigator);
   const labels = [...document.querySelectorAll('[data-agent-download] [data-en]')].map(element => ({ element, zh: element.textContent, en: element.dataset.en }));
   const repositories = { engine: data.site.engineRepository, enginePreview: data.site.engineRepository, newestEngine: data.site.engineRepository, agent: data.site.agentRepository };
@@ -75,7 +88,7 @@
       return true;
     } catch { return false; }
   }
-  window.MoeSite = { renderReleases, getDownload, getPlatform: () => ({ ...platform }), refreshReleases };
+  window.MoeSite = { renderReleases, getDownload, getPlatform: () => ({ ...platform }), refreshReleases, getPreferredLanguage, rememberLanguage };
   addEventListener("message", event => {
     if (event.data?.type !== "moe-demo-ready") return;
     const frame = [...document.querySelectorAll("iframe")].find(element => element.contentWindow === event.source);

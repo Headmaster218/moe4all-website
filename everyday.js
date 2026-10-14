@@ -146,14 +146,18 @@
     const bar=document.createElement("span"),height=12+Math.abs(Math.sin(i*.58)*Math.cos(i*.17))*83;
     bar.style.setProperty("--height",`${height}%`);bar.style.setProperty("--opacity",String(.35+height/155));bar.style.setProperty("--delay",`${-i*.1}s`);wave.append(bar);
   }
-  document.querySelector("#language-toggle").addEventListener("click",event=>{
-    language=language==="zh"?"en":"zh";document.documentElement.lang=language==="zh"?"zh-CN":"en";
+  function setLanguage(value) {
+    language=value;document.documentElement.lang=language==="zh"?"zh-CN":"en";
     translations.forEach(({element,zh,en})=>{element.innerHTML=language==="zh"?zh:en;});
-    const toggle=event.currentTarget;toggle.querySelector("span").textContent=language==="zh"?"EN":"中";
+    const toggle=document.querySelector("#language-toggle");toggle.querySelector("span").textContent=language==="zh"?"EN":"中";
     toggle.title=language==="zh"?"Switch to English":"切换到中文";toggle.setAttribute("aria-label",toggle.title);
     document.title=language==="zh"?"MoE4All · 记得昨天，安排明天":"MoE4All · Remember yesterday. Plan tomorrow.";
     render();
+  }
+  document.querySelector("#language-toggle").addEventListener("click",()=>{
+    setLanguage(language==="zh"?"en":"zh");
+    window.MoeSite.rememberLanguage(language);
   });
-  render();
+  setLanguage(window.MoeSite.getPreferredLanguage());
   window.lucide?.createIcons();
 })();

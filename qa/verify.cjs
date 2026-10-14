@@ -14,7 +14,7 @@ const assert = require('node:assert/strict');
     executablePath: process.env.BROWSER_PATH || (fs.existsSync(edge) ? edge : undefined),
   });
   const errors = [];
-  const page = await browser.newPage({ reducedMotion: 'reduce', deviceScaleFactor: 1 });
+  const page = await browser.newPage({ reducedMotion: 'reduce', deviceScaleFactor: 1, locale: 'zh-CN' });
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   const reports = [];

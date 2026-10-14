@@ -119,8 +119,8 @@
 
   const translations = [...document.querySelectorAll("[data-en]")].map(element => ({ element, zh: element.innerHTML, en: element.dataset.en }));
   const languageToggle = document.querySelector("#language-toggle");
-  languageToggle.addEventListener("click", () => {
-    language = language === "zh" ? "en" : "zh";
+  function setLanguage(value) {
+    language = value;
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
     translations.forEach(({ element, zh, en }) => { element.innerHTML = language === "zh" ? zh : en; });
     languageToggle.querySelector("span").textContent = language === "zh" ? "EN" : "中";
@@ -131,5 +131,10 @@
     renderBenchmark();
     memory.refreshLanguage();
     agent.refreshLanguage();
+  }
+  languageToggle.addEventListener("click", () => {
+    setLanguage(language === "zh" ? "en" : "zh");
+    window.MoeSite.rememberLanguage(language);
   });
+  setLanguage(window.MoeSite.getPreferredLanguage());
 })();

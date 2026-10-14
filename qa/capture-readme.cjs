@@ -15,7 +15,7 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
   const browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' });
   const errors = [];
   try {
-    const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce' });
+    const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce', locale: 'zh-CN' });
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(pathToFileURL(path.join(root, 'index.html')).href);
     await page.frameLocator('#hero-screen').locator('body[data-view="workspace"]').waitFor();

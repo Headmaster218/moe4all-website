@@ -8,7 +8,7 @@ const { pathToFileURL } = require('node:url');
   const browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' });
   const errors = [];
   try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, reducedMotion: 'no-preference' });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 960 }, reducedMotion: 'no-preference', locale: 'zh-CN' });
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(pathToFileURL(path.join(root, 'index.html')).href);
     await page.waitForFunction(() => document.querySelector('.product-carousel').dataset.currentView === 'workspace');
@@ -33,7 +33,7 @@ const { pathToFileURL } = require('node:url');
     await page.waitForFunction(() => document.querySelector('#carousel-play').getAttribute('aria-pressed') === 'true');
     assert.equal(await page.locator('#carousel-play').getAttribute('aria-pressed'), 'true');
 
-    const mock = await browser.newContext({ viewport: { width: 1440, height: 960 }, reducedMotion: 'reduce' });
+    const mock = await browser.newContext({ viewport: { width: 1440, height: 960 }, reducedMotion: 'reduce', locale: 'zh-CN' });
     await mock.addInitScript(() => {
       let data;
       Object.defineProperty(window, 'MOE4ALL_DATA', {

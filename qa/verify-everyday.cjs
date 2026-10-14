@@ -9,7 +9,7 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
   const errors = [], reports = [], externalRequests = [];
   const shots = path.join(__dirname, 'screenshots'); fs.mkdirSync(shots, { recursive: true });
   try {
-    const page = await browser.newPage({ reducedMotion: 'reduce' });
+    const page = await browser.newPage({ reducedMotion: 'reduce', locale: 'zh-CN' });
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     page.on('request', request => { if (/^https?:/.test(request.url())) externalRequests.push(request.url()); });

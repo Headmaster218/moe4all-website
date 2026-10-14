@@ -11,7 +11,7 @@ const assert = require('node:assert/strict');
   const browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' });
   const errors = [], reports = [];
   try {
-    const page = await browser.newPage({ reducedMotion: 'no-preference' });
+    const page = await browser.newPage({ reducedMotion: 'no-preference', locale: 'zh-CN' });
     page.on('pageerror', error => errors.push(error.message));
     const wait = async predicate => {
       try { await page.waitForFunction(predicate, null, { timeout: 20000 }); }
