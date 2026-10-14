@@ -8,7 +8,7 @@
 
 **[逛逛官网](https://headmaster218.github.io/moe4all-website/everyday.html)** · **[看看引擎与实测](https://headmaster218.github.io/moe4all-website/index.html#engine)** · **[认识 Agent](https://github.com/Headmaster218/MoE4All-Agent)** · **[下载引擎](https://github.com/Headmaster218/MoE4All/releases)**
 
-[![MoE4All：把想法，变成下一步。自己的电脑，自己的 AI。](assets/readme/welcome.jpg)](https://headmaster218.github.io/moe4all-website/everyday.html)
+[![MoE4All：把想法，变成下一步。自己的电脑，自己的 AI。](https://headmaster218.github.io/moe4all-website/assets/readme/welcome.jpg)](https://headmaster218.github.io/moe4all-website/everyday.html)
 
 - **让硬件多做一点。** 显存装不下整个模型？让 RAM 和 SSD 一起参与，按需加载专家。
 - **让对话多留一点。** 有用的记忆留给下一次，约好的事情交给定时任务。
@@ -26,7 +26,7 @@ MoE4All Agent 可以从已保存的记忆里找回相关约定：是读书会的
 
 从回忆一件事，到安排下一件事。记忆与定时任务就在同一个工作台里，聊天也可以有后续。
 
-[![演示工作台：找回和小丽的约定，并创建每周一的提醒](assets/readme/workspace.png)](https://headmaster218.github.io/moe4all-website/everyday.html#partner)
+[![演示工作台：找回和小丽的约定，并创建每周一的提醒](https://headmaster218.github.io/moe4all-website/assets/readme/workspace.png)](https://headmaster218.github.io/moe4all-website/everyday.html#partner)
 
 *上图及下方界面为演示工作区，人物、对话和任务使用虚构内容。*
 
@@ -34,20 +34,20 @@ MoE4All Agent 可以从已保存的记忆里找回相关约定：是读书会的
 
 关于你、项目，以及曾经说好的事情，都有迹可循。记忆可以打开查看，让对话里的有用信息成为下一次的背景。
 
-[![演示记忆管理：人物背景、项目偏好和读书会约定](assets/readme/memory.png)](assets/readme/memory.png)
+[![演示记忆管理：人物背景、项目偏好和读书会约定](https://headmaster218.github.io/moe4all-website/assets/readme/memory.png)](assets/readme/memory.png)
 
 ### 换一个屏幕，还是你的工作台
 
 手机配对后，可以接着电脑上的对话。同一份对话，同一份记忆；模型仍在电脑上运行，你只是换了一块屏幕。
 
-[![演示手机访问：已授权手机连接同一个电脑工作台](assets/readme/remote.png)](assets/readme/remote.png)
+[![演示手机访问：已授权手机连接同一个电脑工作台](https://headmaster218.github.io/moe4all-website/assets/readme/remote.png)](assets/readme/remote.png)
 
 **[打开互动展示，看看工作台、模型、记忆和手机访问](https://headmaster218.github.io/moe4all-website/everyday.html#partner)**
 
 <details>
 <summary>还有模型管理：大模型与记忆检索，放在一起。</summary>
 
-![演示模型管理：FlashNext、35B 与本地 Embedding](assets/readme/models.png)
+![演示模型管理：FlashNext、35B 与本地 Embedding](https://headmaster218.github.io/moe4all-website/assets/readme/models.png)
 
 </details>
 
@@ -65,7 +65,7 @@ MoE4All Agent 可以从已保存的记忆里找回相关约定：是读书会的
 
 MoE4All Engine 协调 **VRAM、RAM 和 SSD**：常用的专家靠近 GPU，需要时再把其他专家逐级送上来。让有限的显存，服务于远超显存容量的 MoE 模型。
 
-[![专家流动 GIF：热专家前移、冷专家淘汰，缺失专家从 SSD 经 RAM 进入 VRAM，再送往 GPU 计算](assets/readme/expert-flow.gif)](https://headmaster218.github.io/moe4all-website/index.html#engine)
+[![专家流动 GIF：热专家前移、冷专家淘汰，缺失专家从 SSD 经 RAM 进入 VRAM，再送往 GPU 计算](https://headmaster218.github.io/moe4all-website/assets/readme/expert-flow.gif)](https://headmaster218.github.io/moe4all-website/index.html#engine)
 
 *专家流动与 token 输出为原理示意，不是实时推理录像。点击进入官网，可暂停动效并查看完整过程。*
 
