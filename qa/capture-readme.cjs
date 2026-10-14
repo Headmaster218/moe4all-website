@@ -17,7 +17,7 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
   try {
     const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, reducedMotion: 'reduce' });
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(pathToFileURL(path.join(root, 'everyday.html')).href);
+    await page.goto(pathToFileURL(path.join(root, 'index.html')).href);
     await page.frameLocator('#hero-screen').locator('body[data-view="workspace"]').waitFor();
     await page.evaluate(async () => Promise.all([...document.images].map(image => { image.loading = 'eager'; return image.decode(); })));
     await page.waitForTimeout(300);
@@ -37,7 +37,7 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.setViewportSize({ width: 1040, height: 1400 });
     await page.clock.install();
-    await page.goto(pathToFileURL(path.join(root, 'index.html')).href);
+    await page.goto(pathToFileURL(path.join(root, 'technical.html')).href);
     const visual = page.locator('.memory-visual');
     await visual.scrollIntoViewIfNeeded();
     await page.clock.pauseAt(new Date(Date.now() + 1000));

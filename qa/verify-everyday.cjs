@@ -15,7 +15,7 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
     page.on('request', request => { if (/^https?:/.test(request.url())) externalRequests.push(request.url()); });
     for (const width of [1440, 1920, 3840, 768, 390, 320]) {
       await page.setViewportSize({ width, height: width === 3840 ? 2160 : width === 320 ? 700 : width < 650 ? 844 : 960 });
-      await page.goto(pathToFileURL(path.join(__dirname, '../everyday.html')).href);
+      await page.goto(pathToFileURL(path.join(__dirname, '../index.html')).href);
       await page.waitForFunction(() => document.querySelector('#scenario-prompt').textContent.length > 10);
       await page.evaluate(async () => Promise.all([...document.images].map(image => { image.loading = 'eager'; return image.decode(); })));
       await page.locator('#hero-play').click();
@@ -86,8 +86,8 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
         await page.locator('[data-view="remote"]').press('Home');
         assert.equal(await page.locator('.product-carousel').getAttribute('data-current-view'), 'workspace');
         assert.equal(await page.locator('#carousel-play').getAttribute('aria-pressed'), 'true');
-        assert.equal(await page.locator('[data-agent-download]').evaluateAll(links => links.every(link => link.href === (window.MOE4ALL_DATA.releases.agent?.url || `https://github.com/${window.MOE4ALL_DATA.site.agentRepository}`))), true);
-        if (await page.evaluate(() => !window.MOE4ALL_DATA.releases.agent)) assert.equal(await page.locator('[data-agent-download]').first().innerText(), lang === 'en' ? 'Explore Agent' : '查看 Agent 项目');
+        assert.equal(await page.locator('[data-agent-download]').evaluateAll(links => links.every(link => link.href === window.MoeSite.getDownload("agent").url)), true);
+        if (await page.evaluate(() => !window.MOE4ALL_DATA.releases.agent)) assert.equal(await page.locator('[data-agent-download]').first().innerText(), lang === 'en' ? 'Get MoE4All' : '下载 MoE4All');
         await page.locator('details').first().locator('summary').click();
         assert.equal(await page.locator('details').first().getAttribute('open'), '');
         if (lang === 'en') assert.match(await page.locator('details').first().locator('p').innerText(), /^No\./);

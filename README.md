@@ -6,9 +6,9 @@
 
 游戏显卡、家里的电脑、你已经拥有的硬件，都值得多一点可能。MoE4All 把本地推理引擎、Agent 和插件放在一起：让大模型跑起来，也让 AI 记住有用的背景、安排接下来的事情，成为日常工作的一部分。
 
-**[逛逛官网](https://headmaster218.github.io/moe4all-website/everyday.html)** · **[看看引擎与实测](https://headmaster218.github.io/moe4all-website/index.html#engine)** · **[认识 Agent](https://github.com/Headmaster218/MoE4All-Agent)** · **[下载引擎](https://github.com/Headmaster218/MoE4All/releases)**
+**[逛逛官网](https://headmaster218.github.io/moe4all-website/index.html)** · **[看看引擎与实测](https://headmaster218.github.io/moe4all-website/technical.html#engine)** · **[认识 Agent](https://github.com/Headmaster218/MoE4All-Agent)** · **[下载引擎](https://github.com/Headmaster218/MoE4All/releases)**
 
-[![MoE4All：把想法，变成下一步。自己的电脑，自己的 AI。](https://headmaster218.github.io/moe4all-website/assets/readme/welcome.jpg)](https://headmaster218.github.io/moe4all-website/everyday.html)
+[![MoE4All：把想法，变成下一步。自己的电脑，自己的 AI。](https://headmaster218.github.io/moe4all-website/assets/readme/welcome.jpg?v=1.0.0)](https://headmaster218.github.io/moe4all-website/index.html)
 
 - **让硬件多做一点。** 显存装不下整个模型？让 RAM 和 SSD 一起参与，按需加载专家。
 - **让对话多留一点。** 有用的记忆留给下一次，约好的事情交给定时任务。
@@ -26,7 +26,7 @@ MoE4All Agent 可以从已保存的记忆里找回相关约定：是读书会的
 
 从回忆一件事，到安排下一件事。记忆与定时任务就在同一个工作台里，聊天也可以有后续。
 
-[![演示工作台：找回和小丽的约定，并创建每周一的提醒](https://headmaster218.github.io/moe4all-website/assets/readme/workspace.png)](https://headmaster218.github.io/moe4all-website/everyday.html#partner)
+[![演示工作台：找回和小丽的约定，并创建每周一的提醒](https://headmaster218.github.io/moe4all-website/assets/readme/workspace.png)](https://headmaster218.github.io/moe4all-website/index.html#partner)
 
 *上图及下方界面为演示工作区，人物、对话和任务使用虚构内容。*
 
@@ -42,12 +42,12 @@ MoE4All Agent 可以从已保存的记忆里找回相关约定：是读书会的
 
 [![演示手机访问：已授权手机连接同一个电脑工作台](https://headmaster218.github.io/moe4all-website/assets/readme/remote.png)](assets/readme/remote.png)
 
-**[打开互动展示，看看工作台、模型、记忆和手机访问](https://headmaster218.github.io/moe4all-website/everyday.html#partner)**
+**[打开互动展示，看看工作台、模型、记忆和手机访问](https://headmaster218.github.io/moe4all-website/index.html#partner)**
 
 <details>
 <summary>还有模型管理：大模型与记忆检索，放在一起。</summary>
 
-![演示模型管理：FlashNext、35B 与本地 Embedding](https://headmaster218.github.io/moe4all-website/assets/readme/models.png)
+![演示模型管理：FlashNext、35B 与本地 Embedding](https://headmaster218.github.io/moe4all-website/assets/readme/models.png?v=1.0.0)
 
 </details>
 
@@ -65,7 +65,7 @@ MoE4All Agent 可以从已保存的记忆里找回相关约定：是读书会的
 
 MoE4All Engine 协调 **VRAM、RAM 和 SSD**：常用的专家靠近 GPU，需要时再把其他专家逐级送上来。让有限的显存，服务于远超显存容量的 MoE 模型。
 
-[![专家流动 GIF：热专家前移、冷专家淘汰，缺失专家从 SSD 经 RAM 进入 VRAM，再送往 GPU 计算](https://headmaster218.github.io/moe4all-website/assets/readme/expert-flow.gif)](https://headmaster218.github.io/moe4all-website/index.html#engine)
+[![专家流动 GIF：热专家前移、冷专家淘汰，缺失专家从 SSD 经 RAM 进入 VRAM，再送往 GPU 计算](https://headmaster218.github.io/moe4all-website/assets/readme/expert-flow.gif)](https://headmaster218.github.io/moe4all-website/technical.html#engine)
 
 *专家流动与 token 输出为原理示意，不是实时推理录像。点击进入官网，可暂停动效并查看完整过程。*
 
@@ -73,7 +73,7 @@ MoE4All Engine 协调 **VRAM、RAM 和 SSD**：常用的专家靠近 GPU，需�
 
 ### 一张 RX 7900 XTX，跑起来是什么样？
 
-30K 上下文下，v0.11.0 开发构建的 Decode 实测：
+30K 上下文下的 Decode 实测：
 
 | 模型 | 单会话 | 双会话总吞吐量 | 三会话总吞吐量 |
 | --- | ---: | ---: | ---: |
@@ -84,7 +84,7 @@ MoE4All Engine 协调 **VRAM、RAM 和 SSD**：常用的专家靠近 GPU，需�
 
 *Windows · RX 7900 XTX · 24 GiB VRAM / 48 GiB RAM 进程预算 · Q8 KV · MTP 关闭。Decode 为预热后三轮平均，并发列是总吞吐量，不是每路速度。*
 
-**[查看全部 30K / 150K 结果与测试条件](https://headmaster218.github.io/moe4all-website/index.html#engine)**
+**[查看全部 30K / 150K 结果与测试条件](https://headmaster218.github.io/moe4all-website/technical.html#engine)**
 
 ## 从一个引擎，到自己的 AI 工作台
 
@@ -94,7 +94,7 @@ MoE4All Engine 协调 **VRAM、RAM 和 SSD**：常用的专家靠近 GPU，需�
 | --- | --- | --- |
 | **MoE4All Engine** | 超显存 MoE 推理，终端对话与 OpenAI 兼容 API。 | [项目](https://github.com/Headmaster218/MoE4All) · [发行版](https://github.com/Headmaster218/MoE4All/releases) |
 | **MoE4All Agent** | 将本地引擎、工作台和定制插件结合起来，让 AI 有记忆、有后续。 | [Agent 项目](https://github.com/Headmaster218/MoE4All-Agent) |
-| **DSH 插件** | 本地模型、记忆、定时任务、手机访问、朗读和更多工具。 | [插件展示](https://headmaster218.github.io/moe4all-website/index.html#ecosystem) |
+| **DSH 插件** | 本地模型、记忆、定时任务、手机访问、朗读和更多工具。 | [插件展示](https://headmaster218.github.io/moe4all-website/technical.html#ecosystem) |
 | **长音频后端** | 正在开发的本地长录音转录，探索让声音也成为 AI 的一部分。 | [长音频项目](https://github.com/Headmaster218/long-audio-backend) |
 
 ### 给工作台，多一些本领
@@ -109,6 +109,6 @@ MoE4All Engine 协调 **VRAM、RAM 和 SSD**：常用的专家靠近 GPU，需�
 
 **各种卡，各种专家。让更多人，用上 AI。**
 
-[先逛逛 MoE4All](https://headmaster218.github.io/moe4all-website/everyday.html) · [下载引擎，开始体验](https://github.com/Headmaster218/MoE4All/releases) · [关注 Agent 的进展](https://github.com/Headmaster218/MoE4All-Agent)
+[先逛逛 MoE4All](https://headmaster218.github.io/moe4all-website/index.html) · [下载引擎，开始体验](https://github.com/Headmaster218/MoE4All/releases) · [关注 Agent 的进展](https://github.com/Headmaster218/MoE4All-Agent)
 
 欢迎用 Star 关注进展，也欢迎到对应项目的 Issues 分享你的硬件、体验和想法。

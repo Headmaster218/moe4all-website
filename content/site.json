@@ -4,6 +4,7 @@
   "agentRepository": "Headmaster218/MoE4All-Agent",
   "websiteRepository": "Headmaster218/moe4all-website",
   "brand": "MoE4All",
+  "fallbackVersion": "1.0.0",
   "carouselIntervalMs": 6000,
   "heroScreen": { "width": 960, "height": 620, "imageWidth": 1860, "imageHeight": 846, "corners": [[952, 107], [1706, 92], [1706, 596], [952, 573]] }
 }

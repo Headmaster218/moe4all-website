@@ -3,36 +3,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { validateReleaseEvent, validateAnnouncedRelease } from './release-event.mjs';
 
-export function compareVersions(left, right) {
-  const parse = value => {
-    const [core, suffix] = value.split(/-(.*)/s);
-    return { core: core.split('.').map(Number), suffix };
-  };
-  const a = parse(left), b = parse(right);
-  for (let i = 0; i < 3; i++) if (a.core[i] !== b.core[i]) return a.core[i] - b.core[i];
-  if (!a.suffix || !b.suffix) return a.suffix ? -1 : b.suffix ? 1 : 0;
-  const aa = a.suffix.split('.'), bb = b.suffix.split('.');
-  for (let i = 0; i < Math.max(aa.length, bb.length); i++) {
-    if (aa[i] === bb[i]) continue;
-    if (aa[i] === undefined) return -1;
-    if (bb[i] === undefined) return 1;
-    const an = /^\d+$/.test(aa[i]), bn = /^\d+$/.test(bb[i]);
-    if (an && bn) return Number(aa[i]) - Number(bb[i]);
-    if (an !== bn) return an ? -1 : 1;
-    return aa[i].localeCompare(bb[i]);
-  }
-  return 0;
-}
-
-export function selectReleases(releases, repository = 'Headmaster218/MoE4All', { agentReleases = releases, agentRepository = repository } = {}) {
-  const eligible = (items, source) => items.filter(release => !release.draft && release.published_at && release.html_url?.startsWith(`https://github.com/${source}/releases/tag/`) && release.assets?.some(asset => asset.state === 'uploaded' && asset.size > 0 && !/\.(?:sha256|txt)$/i.test(asset.name)));
-  const engineItems = eligible(releases, repository), agentItems = eligible(agentReleases, agentRepository);
-  const pick = (pattern, prerelease, items = engineItems) => items.filter(release => pattern.test(release.tag_name) && (prerelease === undefined || release.prerelease === prerelease)).map(release => ({ version: release.tag_name.match(pattern)[1], tag: release.tag_name, url: release.html_url, prerelease: release.prerelease, publishedAt: release.published_at })).sort((a, b) => compareVersions(b.version, a.version) || b.publishedAt.localeCompare(a.publishedAt))[0] ?? null;
-  const engine = pick(/^(?:release-|v)(\d+\.\d+\.\d+)$/, false);
-  if (!engine) throw new Error('No uploaded stable Engine release found; keeping the existing manifest.');
-  const preview = pick(/^(?:release-|v)(\d+\.\d+\.\d+-[0-9A-Za-z.-]+)$/, true);
-  return { schema: 1, engine, enginePreview: preview && compareVersions(preview.version, engine.version) > 0 ? preview : null, agent: pick(/^agent-v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/, undefined, agentItems) };
-}
+import releaseModel from '../release-model.js';
+export const { compareVersions, selectReleases } = releaseModel;
 
 async function main() {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');

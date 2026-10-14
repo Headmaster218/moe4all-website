@@ -13,9 +13,10 @@ test('separates stable Engine, Engine candidate and Agent preview', () => {
   assert.equal(selected.agent.version, '0.10.0-preview.3');
 });
 
-test('ignores drafts, uploads in progress and checksum-only releases', () => {
+test('shows the latest published version even when packages are not ready', () => {
   const selected = selectReleases([release('release-0.11.0', false, { draft: true }), release('release-0.12.0', false, { assets: [] }), release('release-0.13.0', false, { assets: [{ name: 'package.zip', size: 0, state: 'starter' }] }), release('release-0.14.0', false, { assets: [{ name: 'package.zip.sha256', size: 64, state: 'uploaded' }] }), release('release-0.10.0')]);
-  assert.equal(selected.engine.version, '0.10.0');
+  assert.equal(selected.engine.version, '0.14.0');
+  assert.deepEqual(selected.engine.assets, []);
 });
 
 test('orders numeric versions independently of the API list order', () => {
@@ -29,8 +30,8 @@ test('drops a superseded Engine candidate once the stable version exists', () =>
 });
 
 test('rejects unrelated release URLs and an empty stable release set', () => {
-  assert.throws(() => selectReleases([release('release-0.10.0', false, { html_url: 'https://example.com/release' })]), /No uploaded stable/);
-  assert.throws(() => selectReleases([release('release-0.11.0-rc.1', true)]), /No uploaded stable/);
+  assert.throws(() => selectReleases([release('release-0.10.0', false, { html_url: 'https://example.com/release' })]), /No published stable/);
+  assert.throws(() => selectReleases([release('release-0.11.0-rc.1', true)]), /No published stable/);
 });
 
 test('stable versions outrank prereleases and numeric suffixes compare numerically', () => {
@@ -43,7 +44,7 @@ test('reads release URLs from the configured product repository', () => {
   const repository = 'sample-org/local-ai';
   const selected = selectReleases([release('release-1.2.3', false, { html_url: `https://github.com/${repository}/releases/tag/release-1.2.3` })], repository);
   assert.equal(selected.engine.version, '1.2.3');
-  assert.throws(() => selectReleases([release('release-1.2.3')], repository), /No uploaded stable/);
+  assert.throws(() => selectReleases([release('release-1.2.3')], repository), /No published stable/);
 });
 
 test('keeps Engine and Agent release sources separate, including an empty Agent source', () => {

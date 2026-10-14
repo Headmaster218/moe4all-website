@@ -35,7 +35,7 @@ test('README local images and website anchors resolve', () => {
 
 test('README benchmark highlights match the maintained snapshot and metric', () => {
   const data = JSON.parse(read('content/benchmarks.json'));
-  assert.ok(readme.includes(`v${data.version} \u5f00\u53d1\u6784\u5efa`));
+  assert.ok(readme.includes('30K'));
   for (const model of data.models) {
     for (const speed of model.results['30000'].decode) assert.ok(readme.includes(`${speed.toFixed(2)} tok/s`));
     assert.ok(readme.includes(`${model.results['30000'].prefill.toFixed(2)} tok/s`));

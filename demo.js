@@ -40,7 +40,13 @@
   }
   addEventListener("resize", fit);
   addEventListener("message", event => {
-    if (event.source !== parent || event.data?.type !== "moe-demo") return;
+    if (event.source !== parent) return;
+    if (event.data?.type === "moe-release-data") {
+      Object.assign(releases, event.data.releases);
+      render();
+      return;
+    }
+    if (event.data?.type !== "moe-demo") return;
     if (["zh", "en"].includes(event.data.language)) language = event.data.language;
     if (views.includes(event.data.view)) view = event.data.view;
     render();

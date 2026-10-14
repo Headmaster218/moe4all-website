@@ -18,7 +18,7 @@ const assert = require('node:assert/strict');
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   const reports = [];
-  const url = pathToFileURL(path.join(root, 'index.html')).href;
+  const url = pathToFileURL(path.join(root, 'technical.html')).href;
   const benchmarks = JSON.parse(fs.readFileSync(path.join(root, 'content/benchmarks.json'), 'utf8'));
 
   try {
@@ -110,7 +110,7 @@ const assert = require('node:assert/strict');
 
       await page.locator('.hero [data-download]').click();
       assert.equal(await page.locator('#download-dialog').isVisible(), true);
-      const expectedDownloads = await page.evaluate(() => 2 + Number(Boolean(window.MOE4ALL_DATA.releases.agent)) + Number(Boolean(window.MOE4ALL_DATA.releases.enginePreview)));
+      const expectedDownloads = await page.evaluate(() => 3 + Number(Boolean(window.MOE4ALL_DATA.releases.enginePreview)));
       assert.equal(await page.locator('.download-options>a:visible').count(), expectedDownloads);
       if (viewport.width === 390) await page.screenshot({ path: path.join(shots, '390-download.png') });
       await page.keyboard.press('Escape');

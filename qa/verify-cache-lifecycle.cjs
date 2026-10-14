@@ -12,7 +12,7 @@ const { pathToFileURL } = require('node:url');
       const raf = window.requestAnimationFrame.bind(window); let time = 0;
       window.requestAnimationFrame = callback => raf(() => callback(time += 80));
     });
-    await page.goto(pathToFileURL(path.join(__dirname, '../index.html')).href);
+    await page.goto(pathToFileURL(path.join(__dirname, '../technical.html')).href);
     await page.locator('.memory-visual').evaluate(element => window.scrollTo(0, scrollY + element.getBoundingClientRect().top - 95));
     await page.waitForFunction(() => {
       const flight = document.querySelector('.token-flight');

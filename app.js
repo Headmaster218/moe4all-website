@@ -37,22 +37,18 @@
     document.querySelectorAll("[data-decode-speed]").forEach(element => { element.innerHTML = `${result.decode[Number(element.dataset.decodeSpeed)].toFixed(2)} <small>tok/s</small>`; });
     document.querySelectorAll("[data-decode-bar]").forEach(element => { element.style.width = `${result.decode[Number(element.dataset.decodeBar)] / maximumDecode * 100}%`; });
     document.querySelector("#prefill-speed").textContent = result.prefill.toFixed(2);
-    document.querySelector("[data-benchmark-label='heading']").textContent = `v${benchmarks.version} / ${language === "en" ? "MEASURED THROUGHPUT" : "实测吞吐量"}`;
-    document.querySelector("#benchmark-note").textContent = language === "en" ? `×N = concurrent sessions. Decode: ${benchmarks.settings.measuredDecodeRounds} measured rounds after warmup. Prefill: a cold request without cached tokens. v${benchmarks.version} development build.` : `×N 为并发会话数；Decode 预热后 ${benchmarks.settings.measuredDecodeRounds} 轮平均，Prefill 为无缓存冷请求。v${benchmarks.version} 开发构建实测。`;
+    document.querySelector("[data-benchmark-label='heading']").textContent = language === "en" ? "MEASURED THROUGHPUT" : "实测吞吐量";
+    document.querySelector("#benchmark-note").textContent = language === "en" ? `×N = concurrent sessions. Decode: ${benchmarks.settings.measuredDecodeRounds} measured rounds after warmup. Prefill: a cold request without cached tokens..` : `×N 为并发会话数；Decode 预热后 ${benchmarks.settings.measuredDecodeRounds} 轮平均，Prefill 为无缓存冷请求。`;
     const h = benchmarks.hardware, s = benchmarks.settings;
     const machine = document.querySelector(".benchmark-machine>div");
     machine.querySelector("strong").textContent = h.gpu.replace(/^AMD Radeon /, "");
     machine.querySelector("span").textContent = `${language === "en" ? "Budgets" : "预算"}: ${h.vramBudgetGiB} GiB VRAM · ${h.ramBudgetGiB} GiB RAM`;
     machine.querySelector("small").textContent = `${h.os} · MTP ${s.mtp ? "ON" : "OFF"} · ${s.kv}`;
-    document.querySelector("#benchmark-dialog .eyebrow").textContent = `BENCHMARK / v${benchmarks.version}`;
+    document.querySelector("#benchmark-dialog .eyebrow").textContent = "BENCHMARK";
     const protocol = document.querySelectorAll(".benchmark-protocol p");
     const settings = `${h.gpu} · ${h.os} · ${h.vramBudgetGiB} GiB VRAM / ${h.ramBudgetGiB} GiB RAM · ${s.kv} · temperature ${s.temperature} · thinking ${s.thinking ? "ON" : "OFF"} · MTP ${s.mtp ? "ON" : "OFF"} · ctx ${s.contextCapacity} · ubatch ${s.ubatch} · threads ${s.cpuThreads} · GPU resident ${s.residentGpuLayers}`;
     protocol[0].textContent = (language === "en" ? "Memory budgets: " : "内存预算：") + settings;
     protocol[1].textContent = language === "en" ? `Decode: ${s.outputTokensPerLane} tokens/session; ${s.warmupRounds} warmup and ${s.measuredDecodeRounds} measured rounds. Per round, total output tokens / slowest lane Decode duration, then averaged. Prefill: ${s.coldPrefillRequests} cold request per condition, cached tokens = ${s.prefillCachedTokens}.` : `Decode：每会话 ${s.outputTokensPerLane} tokens，预热 ${s.warmupRounds} 轮、实测 ${s.measuredDecodeRounds} 轮；每轮总输出 tokens 除以最慢会话 Decode 时间，再取平均。Prefill：每条件 ${s.coldPrefillRequests} 次冷请求，cached tokens = ${s.prefillCachedTokens}。`;
-    protocol[2].textContent = language === "en" ? `v${benchmarks.version} results, maintained manually. FlashNext 30K Decode was revised by the maintainer; its exact build was not supplied. The source link refers to the original measurements. I-Balanced ≈5.91 bpw = GGUF tensor storage × 8 / tensor elements (excluding mmproj), not uniform quantization. New releases do not overwrite these results.` : `v${benchmarks.version} 成绩，手动维护。FlashNext 30K Decode 已按维护者新成绩更新，未提供本次确切构建；源码链接对应原始实测。I-Balanced ≈5.91 bpw = GGUF 张量存储字节 × 8 / 张量元素数（不含 mmproj），并非所有张量统一量化。新发版不会覆盖这些结果。`;
-    const commitLink = document.querySelector(".benchmark-protocol .text-link");
-    commitLink.href = `https://github.com/Headmaster218/MoE4All/commit/${benchmarks.buildCommit}`;
-    commitLink.querySelector("code").textContent = benchmarks.buildCommit.slice(0, 7);
   }
   const table = document.querySelector("#benchmark-table");
   for (const model of benchmarks.models) {

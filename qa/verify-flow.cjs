@@ -19,7 +19,7 @@ const assert = require('node:assert/strict');
     const cache = selector => page.locator(`${selector} .memory-cell`).evaluateAll(elements => elements.map(element => ({ id: element.dataset.expert, wanted: element.dataset.wanted, rank: Number(element.dataset.rank), x: element.getBoundingClientRect().x, y: element.getBoundingClientRect().y })));
     for (const width of [1440, 3840, 390, 320]) {
       await page.setViewportSize({ width, height: width === 3840 ? 2160 : width < 650 ? 844 : 960 });
-      await page.goto(pathToFileURL(path.join(root, 'index.html')).href);
+      await page.goto(pathToFileURL(path.join(root, 'technical.html')).href);
       const visual = page.locator('.memory-visual');
       await visual.evaluate(element => window.scrollTo(0, scrollY + element.getBoundingClientRect().top - 95));
       await wait(() => document.querySelector('.memory-visual').dataset.phase === 'gpu-hit' && Number(document.querySelector('.expert-flight')?.dataset.progress) > .2);

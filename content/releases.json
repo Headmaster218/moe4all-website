@@ -1,11 +1,28 @@
 {
   "schema": 1,
   "engine": {
-    "version": "0.10.0",
-    "tag": "release-0.10.0",
-    "url": "https://github.com/Headmaster218/MoE4All/releases/tag/release-0.10.0",
+    "version": "1.0.0",
+    "tag": "release-1.0.0",
+    "url": "https://github.com/Headmaster218/MoE4All/releases/tag/release-1.0.0",
     "prerelease": false,
-    "publishedAt": "2026-10-10T06:28:04Z"
+    "publishedAt": "2026-10-14T19:06:04Z",
+    "assets": [
+      {
+        "name": "image-codec-sources.tar.gz",
+        "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.0/image-codec-sources.tar.gz",
+        "size": 4524569
+      },
+      {
+        "name": "MoE4All-Linux-x86_64-v1.0.0.tar.gz",
+        "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.0/MoE4All-Linux-x86_64-v1.0.0.tar.gz",
+        "size": 51308893
+      },
+      {
+        "name": "MoE4All-Windows-x86_64-v1.0.0.zip",
+        "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.0/MoE4All-Windows-x86_64-v1.0.0.zip",
+        "size": 17535477
+      }
+    ]
   },
   "enginePreview": null,
   "agent": null

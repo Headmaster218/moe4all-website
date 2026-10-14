@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: '24'
       - name: Validate releases, cache story and promotional README
-        run: node --test qa/release-selection.test.mjs qa/release-event.test.mjs qa/memory-model.test.cjs qa/readme.test.mjs
+        run: node --test qa/release-selection.test.mjs qa/release-event.test.mjs qa/memory-model.test.cjs qa/readme.test.mjs qa/downloads.test.cjs
       - name: Synchronize product releases
         env:
           GITHUB_TOKEN: ${{ github.token }}
