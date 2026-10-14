@@ -29,8 +29,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - name: Validate release interfaces and cache story
-        run: node --test qa/release-selection.test.mjs qa/release-event.test.mjs qa/memory-model.test.cjs
+      - name: Validate releases, cache story and promotional README
+        run: node --test qa/release-selection.test.mjs qa/release-event.test.mjs qa/memory-model.test.cjs qa/readme.test.mjs
       - name: Synchronize product releases
         env:
           GITHUB_TOKEN: ${{ github.token }}
