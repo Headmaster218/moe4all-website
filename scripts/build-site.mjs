@@ -13,7 +13,9 @@ if (benchmarks.metric !== 'mean_aggregate_decode_tokens_per_second') throw new E
 for (const model of benchmarks.models) {
   for (const context of benchmarks.contexts) {
     const result = model.results[context];
-    if (!result || result.decode.length !== 3 || [...result.decode, result.prefill].some(value => !Number.isFinite(value) || value <= 0)) throw new Error(`Invalid benchmark data: ${model.id}/${context}`);
+    if (!result) continue;
+    const values = result.prefill === undefined ? result.decode : [...result.decode, result.prefill];
+    if (result.decode.length !== 3 || values.some(value => !Number.isFinite(value) || value <= 0)) throw new Error(`Invalid benchmark data: ${model.id}/${context}`);
   }
 }
 const data = 'window.MOE4ALL_DATA = ' + JSON.stringify({ site, releases, benchmarks, demo }, null, 2).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') + ';\n';

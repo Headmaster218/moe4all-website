@@ -93,6 +93,7 @@ window.MOE4ALL_DATA = {
       "residentGpuLayers": 16
     },
     "contexts": [
+      2000,
       30000,
       150000
     ],
@@ -136,6 +137,30 @@ window.MOE4ALL_DATA = {
           "method": "Local GGUF file bytes minus aligned metadata header, multiplied by 8 / total tensor elements. Includes tensor alignment padding, excludes mmproj; storage-equivalent, not a uniform tensor quantization."
         },
         "results": {
+          "2000": {
+            "decode": [
+              130.26,
+              168.09,
+              206.63
+            ],
+            "decodeSegments": [
+              [
+                130.14,
+                129.99,
+                130.65
+              ],
+              [
+                164.18,
+                161.78,
+                157.85
+              ],
+              [
+                205.56,
+                205.7,
+                194.75
+              ]
+            ]
+          },
           "30000": {
             "decode": [
               80.49,

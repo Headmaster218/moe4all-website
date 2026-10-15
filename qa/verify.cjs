@@ -53,14 +53,15 @@ const assert = require('node:assert/strict');
       for (const model of benchmarks.models) {
         await page.locator(`[data-model="${model.id}"]`).click();
         for (const context of benchmarks.contexts) {
+          if (!model.results[context]) continue;
           await page.locator(`[data-context="${context}"]`).click();
           const values = await page.locator('[data-decode-speed]').allTextContents();
           assert.deepEqual(values.map(value => Number.parseFloat(value)), model.results[context].decode);
-          assert.equal(await page.locator('#prefill-speed').innerText(), model.results[context].prefill.toFixed(2));
+          assert.equal(await page.locator('#prefill-speed').innerText(), Number.isFinite(model.results[context].prefill) ? model.results[context].prefill.toFixed(2) : '—');
         }
       }
       await page.locator('#benchmark-details').click();
-      assert.equal(await page.locator('#benchmark-table tr').count(), 4);
+      assert.equal(await page.locator('#benchmark-table tr').count(), benchmarks.models.reduce((count, model) => count + Object.keys(model.results).length, 0));
       if (viewport.width === 390) await page.screenshot({ path: path.join(shots, '390-benchmark-details.png') });
       await page.keyboard.press('Escape');
       await page.locator('[data-model="flashnext"]').click();

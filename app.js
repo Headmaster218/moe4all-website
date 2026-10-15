@@ -31,12 +31,24 @@
 
   let selectedContext = "30000", selectedModel = "flashnext";
   const maximumDecode = Math.max(...benchmarks.models.flatMap(model => Object.values(model.results).flatMap(result => result.decode)));
+  const contextButtons = [...document.querySelectorAll("[data-context]")];
+  function syncContextButtons() {
+    const model = benchmarks.models.find(item => item.id === selectedModel);
+    for (const button of contextButtons) button.hidden = !model.results[button.dataset.context];
+    if (!model.results[selectedContext]) selectedContext = model.results["30000"] ? "30000" : Object.keys(model.results)[0];
+    for (const button of contextButtons) {
+      const active = button.dataset.context === selectedContext;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+  }
   function renderBenchmark() {
     const model = benchmarks.models.find(item => item.id === selectedModel);
     const result = model.results[selectedContext];
     document.querySelectorAll("[data-decode-speed]").forEach(element => { element.innerHTML = `${result.decode[Number(element.dataset.decodeSpeed)].toFixed(2)} <small>tok/s</small>`; });
     document.querySelectorAll("[data-decode-bar]").forEach(element => { element.style.width = `${result.decode[Number(element.dataset.decodeBar)] / maximumDecode * 100}%`; });
-    document.querySelector("#prefill-speed").textContent = result.prefill.toFixed(2);
+    document.querySelector("#prefill-speed").textContent = Number.isFinite(result.prefill) ? result.prefill.toFixed(2) : "—";
+    document.querySelector(".prefill-result>span:last-child").textContent = Number.isFinite(result.prefill) ? (language === "en" ? "Single cold request" : "单路冷请求") : (language === "en" ? "Decode only" : "仅 Decode");
     document.querySelector("[data-benchmark-label='heading']").textContent = language === "en" ? "MEASURED THROUGHPUT" : "实测吞吐量";
     document.querySelector("#benchmark-note").textContent = language === "en" ? `×N = concurrent sessions. Decode: ${benchmarks.settings.measuredDecodeRounds} measured rounds after warmup. Prefill: a cold request without cached tokens.` : `×N 为并发会话数；Decode 预热后 ${benchmarks.settings.measuredDecodeRounds} 轮平均，Prefill 为无缓存冷请求。`;
     const h = benchmarks.hardware, s = benchmarks.settings;
@@ -53,19 +65,22 @@
   const table = document.querySelector("#benchmark-table");
   for (const model of benchmarks.models) {
     for (const context of benchmarks.contexts) {
+      const result = model.results[context];
+      if (!result) continue;
       const row = document.createElement("tr");
       const name = document.createElement("th");
       name.scope = "row";
       name.textContent = `${model.name} / ${context / 1000}K`;
       row.append(name);
-      for (const number of [...model.results[context].decode, model.results[context].prefill]) {
-        const cell = document.createElement("td"); cell.textContent = number.toFixed(2); row.append(cell);
+      for (const number of [...result.decode, result.prefill]) {
+        const cell = document.createElement("td"); cell.textContent = Number.isFinite(number) ? number.toFixed(2) : "—"; row.append(cell);
       }
       table.append(row);
     }
   }
+  syncContextButtons();
   renderBenchmark();
-  document.querySelectorAll("[data-context]").forEach(button => {
+  contextButtons.forEach(button => {
     button.addEventListener("click", () => {
       document.querySelectorAll("[data-context]").forEach(item => {
         const active = item === button;
@@ -87,6 +102,7 @@
         const active = item === button; item.classList.toggle("active", active); item.setAttribute("aria-pressed", String(active));
       });
       selectedModel = button.dataset.model;
+      syncContextButtons();
       renderBenchmark();
     });
   });
