@@ -6,7 +6,8 @@ const assert = require('node:assert/strict');
 
 (async () => {
   const root = path.resolve(__dirname, '..');
-  const shots = path.join(__dirname, 'screenshots');
+  assert.ok(process.env.MOE4ALL_EVIDENCE_DIR, 'Set MOE4ALL_EVIDENCE_DIR under the shared work root');
+  const shots = path.join(process.env.MOE4ALL_EVIDENCE_DIR, 'website-screenshots');
   fs.mkdirSync(shots, { recursive: true });
   const edge = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
   const browser = await chromium.launch({
@@ -26,6 +27,9 @@ const assert = require('node:assert/strict');
       await page.setViewportSize(viewport);
       await page.goto(url);
       await page.waitForFunction(() => window.lucide && document.querySelectorAll('.expert-cell').length === 48);
+      assert.equal(await page.locator('[data-model][aria-pressed="true"]').getAttribute('data-model'), 'qwen35');
+      assert.equal(await page.locator('[data-context][aria-pressed="true"]').getAttribute('data-context'), '2000');
+      assert.deepEqual(await page.locator('[data-model]').evaluateAll(buttons => buttons.map(button => button.dataset.model)), ['qwen35', 'flashnext']);
       await page.evaluate(async () => {
         await Promise.all([...document.querySelectorAll('img[src]')].map(img => {
           img.loading = 'eager';
@@ -58,13 +62,21 @@ const assert = require('node:assert/strict');
           const values = await page.locator('[data-decode-speed]').allTextContents();
           assert.deepEqual(values.map(value => Number.parseFloat(value)), model.results[context].decode);
           assert.equal(await page.locator('#prefill-speed').innerText(), Number.isFinite(model.results[context].prefill) ? model.results[context].prefill.toFixed(2) : '—');
+          const maximum = Math.max(...benchmarks.models.flatMap(item => Object.entries(item.results)
+            .filter(([depth]) => (depth === '2000') === (context === 2000)).flatMap(([, result]) => result.decode)));
+          const widths = await page.locator('[data-decode-bar]').evaluateAll(bars => bars.map(bar => parseFloat(bar.style.width)));
+          widths.forEach((width, index) => assert.ok(Math.abs(width - model.results[context].decode[index] / maximum * 100) < .001, '2K and long-context chart scales must be independent'));
         }
       }
       await page.locator('#benchmark-details').click();
       assert.equal(await page.locator('#benchmark-table tr').count(), benchmarks.models.reduce((count, model) => count + Object.keys(model.results).length, 0));
       if (viewport.width === 390) await page.screenshot({ path: path.join(shots, '390-benchmark-details.png') });
       await page.keyboard.press('Escape');
+      await page.locator('[data-model="qwen35"]').click();
+      await page.locator('[data-context="2000"]').click();
+      await page.locator('.benchmark').screenshot({ path: path.join(shots, `benchmark-${viewport.width}-zh.png`) });
       await page.locator('[data-model="flashnext"]').click();
+      assert.equal(await page.locator('[data-context="2000"]').isVisible(), false);
       await page.locator('[data-context="30000"]').click();
       assert.equal(await page.locator('#memory-toggle').getAttribute('aria-pressed'), 'true');
       assert.equal(await page.locator('.compute-slot').count(), 4);
@@ -125,6 +137,9 @@ const assert = require('node:assert/strict');
       }
       await page.locator('#language-toggle').click();
       assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+      await page.locator('[data-model="qwen35"]').click();
+      await page.locator('[data-context="2000"]').click();
+      await page.locator('.benchmark').screenshot({ path: path.join(shots, `benchmark-${viewport.width}-en.png`) });
       const englishWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       assert.equal(englishWidth, viewport.width, `English horizontal overflow at ${viewport.width}`);
       const newest = await page.evaluate(() => window.MOE4ALL_DATA.releases.enginePreview || window.MOE4ALL_DATA.releases.engine);
@@ -147,7 +162,7 @@ const assert = require('node:assert/strict');
       reports.push({ viewport, metrics, interactions: 'passed', englishWidth });
     }
     assert.equal(errors.length, 0, `Browser errors: ${errors.join('\n')}`);
-    fs.writeFileSync(path.join(__dirname, 'results.json'), JSON.stringify({ status: 'passed', reports, errors }, null, 2));
+    fs.writeFileSync(path.join(process.env.MOE4ALL_EVIDENCE_DIR, 'website-results.json'), JSON.stringify({ status: 'passed', reports, errors }, null, 2));
     console.log(JSON.stringify({ status: 'passed', viewports: reports.map(r => r.viewport.width), screenshots: shots, errors }, null, 2));
   } finally {
     await browser.close();

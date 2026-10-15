@@ -29,8 +29,9 @@
   menu.querySelectorAll("a").forEach(link => link.addEventListener("click", closeMenu));
   document.addEventListener("keydown", event => { if (event.key === "Escape") closeMenu(); });
 
-  let selectedContext = "30000", selectedModel = "flashnext";
-  const maximumDecode = Math.max(...benchmarks.models.flatMap(model => Object.values(model.results).flatMap(result => result.decode)));
+  let selectedContext = "2000", selectedModel = "qwen35";
+  const maximumDecode = shortContext => Math.max(...benchmarks.models.flatMap(model =>
+    Object.entries(model.results).filter(([context]) => (context === "2000") === shortContext).flatMap(([, result]) => result.decode)));
   const contextButtons = [...document.querySelectorAll("[data-context]")];
   function syncContextButtons() {
     const model = benchmarks.models.find(item => item.id === selectedModel);
@@ -45,22 +46,35 @@
   function renderBenchmark() {
     const model = benchmarks.models.find(item => item.id === selectedModel);
     const result = model.results[selectedContext];
+    const chartMaximum = maximumDecode(selectedContext === "2000");
+    const measurement = result.measurement;
     document.querySelectorAll("[data-decode-speed]").forEach(element => { element.innerHTML = `${result.decode[Number(element.dataset.decodeSpeed)].toFixed(2)} <small>tok/s</small>`; });
-    document.querySelectorAll("[data-decode-bar]").forEach(element => { element.style.width = `${result.decode[Number(element.dataset.decodeBar)] / maximumDecode * 100}%`; });
+    document.querySelectorAll("[data-decode-bar]").forEach(element => { element.style.width = `${result.decode[Number(element.dataset.decodeBar)] / chartMaximum * 100}%`; });
     document.querySelector("#prefill-speed").textContent = Number.isFinite(result.prefill) ? result.prefill.toFixed(2) : "—";
-    document.querySelector(".prefill-result>span:last-child").textContent = Number.isFinite(result.prefill) ? (language === "en" ? "Single cold request" : "单路冷请求") : (language === "en" ? "Decode only" : "仅 Decode");
+    document.querySelector(".prefill-result>span:last-child").textContent = measurement?.prefill.measuredRounds > 1 ? (language === "en" ? `Mean of ${measurement.prefill.measuredRounds} cold requests` : `${measurement.prefill.measuredRounds} 次冷请求平均`) : Number.isFinite(result.prefill) ? (language === "en" ? "Single cold request" : "单路冷请求") : (language === "en" ? "Decode only" : "仅 Decode");
     document.querySelector("[data-benchmark-label='heading']").textContent = language === "en" ? "MEASURED THROUGHPUT" : "实测吞吐量";
     document.querySelector("#benchmark-note").textContent = language === "en" ? `×N = concurrent sessions. Decode: ${benchmarks.settings.measuredDecodeRounds} measured rounds after warmup. Prefill: a cold request without cached tokens.` : `×N 为并发会话数；Decode 预热后 ${benchmarks.settings.measuredDecodeRounds} 轮平均，Prefill 为无缓存冷请求。`;
     const h = benchmarks.hardware, s = benchmarks.settings;
     const machine = document.querySelector(".benchmark-machine>div");
     machine.querySelector("strong").textContent = h.gpu.replace(/^AMD Radeon /, "");
-    machine.querySelector("span").textContent = `${language === "en" ? "Budgets" : "预算"}: ${h.vramBudgetGiB} GiB VRAM · ${h.ramBudgetGiB} GiB RAM`;
+    machine.querySelector("span").textContent = measurement ? (language === "en" ? "Automatic configuration: aggressive" : "自动配置：激进性能") : `${language === "en" ? "Budgets" : "预算"}: ${h.vramBudgetGiB} GiB VRAM · ${h.ramBudgetGiB} GiB RAM`;
     machine.querySelector("small").textContent = `${h.os} · MTP ${s.mtp ? "ON" : "OFF"} · ${s.kv}`;
     document.querySelector("#benchmark-dialog .eyebrow").textContent = "BENCHMARK";
     const protocol = document.querySelectorAll(".benchmark-protocol p");
     const settings = `${h.gpu} · ${h.os} · ${h.vramBudgetGiB} GiB VRAM / ${h.ramBudgetGiB} GiB RAM · ${s.kv} · temperature ${s.temperature} · thinking ${s.thinking ? "ON" : "OFF"} · MTP ${s.mtp ? "ON" : "OFF"} · ctx ${s.contextCapacity} · ubatch ${s.ubatch} · threads ${s.cpuThreads} · GPU resident ${s.residentGpuLayers}`;
     protocol[0].textContent = (language === "en" ? "Memory budgets: " : "内存预算：") + settings;
     protocol[1].textContent = language === "en" ? `Decode: ${s.outputTokensPerLane} tokens/session; ${s.warmupRounds} warmup and ${s.measuredDecodeRounds} measured rounds. Per round, total output tokens / slowest lane Decode duration, then averaged. Prefill: ${s.coldPrefillRequests} cold request per condition, cached tokens = ${s.prefillCachedTokens}.` : `Decode：每会话 ${s.outputTokensPerLane} tokens，预热 ${s.warmupRounds} 轮、实测 ${s.measuredDecodeRounds} 轮；每轮总输出 tokens 除以最慢会话 Decode 时间，再取平均。Prefill：每条件 ${s.coldPrefillRequests} 次冷请求，cached tokens = ${s.prefillCachedTokens}。`;
+    if (measurement) {
+      const d = measurement.decode, p = measurement.prefill;
+      document.querySelector("#benchmark-note").textContent = language === "en"
+        ? `×N = concurrent sessions. Short-context Decode: output tokens ${d.measuredWindow[0]}–${d.measuredWindow[1]}, ${d.measuredRoundsPerConcurrency} run per condition. Prefill: ${p.promptTokens} tokens, mean of ${p.measuredRounds} cold processes, cached tokens = 0.`
+        : `×N 为并发会话数。短上下文 Decode：取生成第 ${d.measuredWindow[0]}–${d.measuredWindow[1]} tokens 区间，每条件 ${d.measuredRoundsPerConcurrency} 次实测；Prefill：${p.promptTokens} tokens，${p.measuredRounds} 次冷进程平均，cached tokens = 0。`;
+      protocol[0].textContent = `${h.gpu} · ${h.os} · Engine ${measurement.version} · ${language === "en" ? "automatic aggressive" : "自动激进"} · ${measurement.kv} · MTP OFF · ctx ${measurement.contextCapacity} · ubatch ${measurement.ubatch} · threads ${measurement.cpuThreads} · ${measurement.configuredSlots} slots · GPU resident ${measurement.residentGpuLayers}`;
+      const samples = p.samples.map(value => value.toFixed(2)).join(" / ");
+      protocol[1].textContent = language === "en"
+        ? `Short-context Decode starts with ${d.promptTokensRange.join("–")} prompt tokens, generates ${d.outputTokensPerLane} tokens/session and measures output tokens ${d.measuredWindow.join("–")}; thinking ON, one run per concurrency, not a three-round mean or a full 2K prompt. Prefill: exactly ${p.promptTokens} tokens, thinking OFF, ${p.measuredRounds} fresh processes with no KV reuse; ${samples} tok/s. All samples, including the slower first one, are averaged. OS file and kernel caches are not cleared; startup is excluded. 30K/150K rows retain their original protocol.`
+        : `短上下文 Decode 从 ${d.promptTokensRange.join("–")} prompt tokens 开始，每会话生成 ${d.outputTokensPerLane} tokens，取生成第 ${d.measuredWindow.join("–")} tokens 区间；思考开启，每种并发单次实测，并非三轮平均或完整 2K prompt。Prefill：严格 ${p.promptTokens} tokens，思考关闭，${p.measuredRounds} 次新进程且无 KV 复用，分别为 ${samples} tok/s；较慢的首轮也计入平均。不清理 OS 文件及 kernel 缓存，不计模型启动时间。30K／150K 行保留原测法。`;
+    }
   }
   const table = document.querySelector("#benchmark-table");
   for (const model of benchmarks.models) {
