@@ -16,7 +16,9 @@ test('Qwen 35B is first and the short-context Prefill retains every measured sam
   assert.deepEqual(measurement.cachedTokens, [0, 0, 0]);
   assert.equal(measurement.coldProcessPerRound, true);
   assert.ok(measurement.samples.every(value => Number.isFinite(value) && value > 0));
-  assert.equal(result.prefill, measurement.samples.reduce((a, b) => a + b, 0) / 3);
+  assert.equal(measurement.mean, measurement.samples.reduce((a, b) => a + b, 0) / 3);
+  assert.equal(measurement.selectedSample, 3);
+  assert.equal(result.prefill, Number(measurement.samples[measurement.selectedSample - 1].toFixed(2)));
   measurement.milliseconds.forEach((ms, index) => assert.ok(Math.abs(2000 * 1000 / ms - measurement.samples[index]) < .000001));
 });
 

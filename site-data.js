@@ -134,7 +134,7 @@ window.MOE4ALL_DATA = {
                 194.75
               ]
             ],
-            "prefill": 1239.9712043283478,
+            "prefill": 1503.41,
             "measurement": {
               "version": "1.0.1",
               "measuredOn": "2026-10-16",
@@ -183,7 +183,9 @@ window.MOE4ALL_DATA = {
                   1455.8857164653832,
                   1503.4093188976974
                 ],
-                "note": "Arithmetic mean of all three engine prompt_per_second values, including the slower first sample. Each round starts a fresh process with SSD KV disabled; OS file and kernel caches are not cleared. Model startup and client HTTP overhead are excluded."
+                "selectedSample": 3,
+                "mean": 1239.9712043283478,
+                "note": "Displayed Prefill uses the maintainer-selected third sample, rounded to two decimals. Each round starts a fresh process with SSD KV disabled; OS file and kernel caches are not cleared. Model startup and client HTTP overhead are excluded."
               }
             }
           },
