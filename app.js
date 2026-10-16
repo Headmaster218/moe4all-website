@@ -29,9 +29,9 @@
   menu.querySelectorAll("a").forEach(link => link.addEventListener("click", closeMenu));
   document.addEventListener("keydown", event => { if (event.key === "Escape") closeMenu(); });
 
-  let selectedContext = "2000", selectedModel = "qwen35";
+  let selectedContext = "4000", selectedModel = "qwen35";
   const maximumDecode = shortContext => Math.max(...benchmarks.models.flatMap(model =>
-    Object.entries(model.results).filter(([context]) => (context === "2000") === shortContext).flatMap(([, result]) => result.decode)));
+    Object.entries(model.results).filter(([context]) => (context === "4000") === shortContext).flatMap(([, result]) => result.decode)));
   const contextButtons = [...document.querySelectorAll("[data-context]")];
   function syncContextButtons() {
     const model = benchmarks.models.find(item => item.id === selectedModel);
@@ -46,7 +46,7 @@
   function renderBenchmark() {
     const model = benchmarks.models.find(item => item.id === selectedModel);
     const result = model.results[selectedContext];
-    const chartMaximum = maximumDecode(selectedContext === "2000");
+    const chartMaximum = maximumDecode(selectedContext === "4000");
     document.querySelectorAll("[data-decode-speed]").forEach(element => { element.innerHTML = `${result.decode[Number(element.dataset.decodeSpeed)].toFixed(2)} <small>tok/s</small>`; });
     document.querySelectorAll("[data-decode-bar]").forEach(element => { element.style.width = `${result.decode[Number(element.dataset.decodeBar)] / chartMaximum * 100}%`; });
     document.querySelector("#prefill-speed").textContent = Number.isFinite(result.prefill) ? result.prefill.toFixed(2) : "—";

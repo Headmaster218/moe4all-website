@@ -93,7 +93,7 @@ window.MOE4ALL_DATA = {
       "residentGpuLayers": 16
     },
     "contexts": [
-      2000,
+      4000,
       30000,
       150000
     ],
@@ -111,36 +111,36 @@ window.MOE4ALL_DATA = {
           "method": "Local GGUF file bytes minus aligned metadata header, multiplied by 8 / total tensor elements. Includes tensor alignment padding, excludes mmproj; storage-equivalent, not a uniform tensor quantization."
         },
         "results": {
-          "2000": {
+          "4000": {
             "decode": [
-              130.26,
-              168.09,
-              206.63
+              120.98,
+              164.64,
+              201.28
             ],
             "decodeSegments": [
               [
-                130.14,
-                129.99,
-                130.65
+                108.82924582892765,
+                118.57658637707449,
+                120.97746947205847
               ],
               [
-                164.18,
-                161.78,
-                157.85
+                162.15867224943122,
+                164.29601017360517,
+                164.64254336173826
               ],
               [
-                205.56,
-                205.7,
-                194.75
+                204.63428765373476,
+                202.4771720559045,
+                201.2831421396867
               ]
             ],
-            "prefill": 1503.41,
+            "prefill": 3604.71,
             "measurement": {
               "version": "1.0.1",
               "measuredOn": "2026-10-16",
               "binarySha256": "6160e6ee9676c404d1272eb0673619268fd7c6a2099f157b7d393b21b9d45906",
               "profile": "aggressive",
-              "contextCapacity": 163840,
+              "contextCapacity": 8192,
               "configuredSlots": 3,
               "ubatch": 4096,
               "cpuThreads": 10,
@@ -150,21 +150,21 @@ window.MOE4ALL_DATA = {
               "decode": {
                 "sourceTask": "20261016-002027-d0-decode-123-a1",
                 "promptTokensRange": [
-                  77,
-                  92
+                  4096,
+                  4096
                 ],
-                "outputTokensPerLane": 1024,
+                "outputTokensPerLane": 512,
                 "measuredWindow": [
-                  512,
-                  1024
+                  342,
+                  512
                 ],
-                "measuredRoundsPerConcurrency": 1,
+                "measuredRoundsPerConcurrency": 3,
                 "thinking": true,
                 "note": "Short-context Decode, not a full 2000-token prompt. Aggregate stream-window throughput from the original manifest; not a three-round mean."
               },
               "prefill": {
                 "sourceTask": "20261016-032448-qwen35-2k-prefill-site-3bc7",
-                "promptTokens": 2000,
+                "promptTokens": 8192,
                 "measuredRounds": 3,
                 "coldProcessPerRound": true,
                 "thinking": false,
@@ -174,17 +174,17 @@ window.MOE4ALL_DATA = {
                   0
                 ],
                 "milliseconds": [
-                  2629.4388,
-                  1373.7342,
-                  1330.3097
+                  2738.372199999998,
+                  2272.583000000006,
+                  2243.428100000019
                 ],
                 "samples": [
-                  760.6185776219626,
-                  1455.8857164653832,
-                  1503.4093188976974
+                  2991.5582695442226,
+                  3604.7088269163232,
+                  3651.554511597644
                 ],
-                "selectedSample": 3,
-                "mean": 1239.9712043283478,
+                "selectedSample": 2,
+                "mean": 3415.9405360193964,
                 "note": "Displayed Prefill uses the maintainer-selected third sample, rounded to two decimals. Each round starts a fresh process with SSD KV disabled; OS file and kernel caches are not cleared. Model startup and client HTTP overhead are excluded."
               }
             }
