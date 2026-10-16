@@ -1,5 +1,18 @@
 {
   "schema": 1,
+  "catalog": {
+    "schema": 1,
+    "records": [
+      {
+        "id": "maintainer-7900xtx-202610",
+        "file": "benchmarks.json",
+        "contributor": "Headmaster218",
+        "origin": "maintainer",
+        "verification": "reviewed",
+        "source": "https://github.com/Headmaster218/moe4all-website/blob/main/content/benchmarks.json"
+      }
+    ]
+  },
   "version": "0.11.0",
   "buildCommit": "fabf3e614a56efed66dfaa89d4fac3a10ec0c40b",
   "binarySha256": "8a3c80cd8f8872778ae2425568f108562353d051a3aa002edff0d3819feeafff",

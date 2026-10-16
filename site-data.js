@@ -63,6 +63,19 @@ window.MOE4ALL_DATA = {
   },
   "benchmarks": {
     "schema": 1,
+    "catalog": {
+      "schema": 1,
+      "records": [
+        {
+          "id": "maintainer-7900xtx-202610",
+          "file": "benchmarks.json",
+          "contributor": "Headmaster218",
+          "origin": "maintainer",
+          "verification": "reviewed",
+          "source": "https://github.com/Headmaster218/moe4all-website/blob/main/content/benchmarks.json"
+        }
+      ]
+    },
     "version": "0.11.0",
     "buildCommit": "fabf3e614a56efed66dfaa89d4fac3a10ec0c40b",
     "binarySha256": "8a3c80cd8f8872778ae2425568f108562353d051a3aa002edff0d3819feeafff",
@@ -392,6 +405,790 @@ window.MOE4ALL_DATA = {
           "zh": "记忆检索",
           "en": "Memory retrieval"
         }
+      }
+    ]
+  },
+  "benchmarkCatalog": {
+    "schema": 1,
+    "records": [
+      {
+        "id": "maintainer-7900xtx-202610",
+        "file": "benchmarks.json",
+        "contributor": "Headmaster218",
+        "origin": "maintainer",
+        "verification": "reviewed",
+        "source": "https://github.com/Headmaster218/moe4all-website/blob/main/content/benchmarks.json"
+      }
+    ]
+  },
+  "benchmarkDatasets": {},
+  "gpuSpecs": {
+    "schema": 1,
+    "gpus": [
+      {
+        "name": "RTX PRO 6000 Blackwell Workstation Edition",
+        "vendor": "nvidia",
+        "releaseDate": "2025",
+        "architecture": "Blackwell",
+        "vramGiB": 96,
+        "fp32Tflops": 125,
+        "bandwidthGBs": 1792
+      },
+      {
+        "name": "GeForce RTX 5090",
+        "vendor": "nvidia",
+        "releaseDate": "2025-01-30",
+        "architecture": "Blackwell",
+        "vramGiB": 32,
+        "fp32Tflops": 104.88,
+        "bandwidthGBs": 1792
+      },
+      {
+        "name": "GeForce RTX 4090",
+        "vendor": "nvidia",
+        "releaseDate": "2022",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 24,
+        "fp32Tflops": 82.58,
+        "bandwidthGBs": 1008
+      },
+      {
+        "name": "Radeon RX 7900 XTX",
+        "vendor": "amd",
+        "releaseDate": "2022-12-13",
+        "architecture": "RDNA 3",
+        "vramGiB": 24,
+        "fp32Tflops": 61.4,
+        "bandwidthGBs": 960
+      },
+      {
+        "name": "GeForce RTX 5080",
+        "vendor": "nvidia",
+        "releaseDate": "2025-01-30",
+        "architecture": "Blackwell",
+        "vramGiB": 16,
+        "fp32Tflops": 56.34,
+        "bandwidthGBs": 960
+      },
+      {
+        "name": "GeForce RTX 4080 SUPER",
+        "vendor": "nvidia",
+        "releaseDate": "2024",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 16,
+        "fp32Tflops": 52.22,
+        "bandwidthGBs": 736
+      },
+      {
+        "name": "Radeon RX 7900 XT",
+        "vendor": "amd",
+        "releaseDate": "2022-12-13",
+        "architecture": "RDNA 3",
+        "vramGiB": 20,
+        "fp32Tflops": 51.6,
+        "bandwidthGBs": 800
+      },
+      {
+        "name": "GeForce RTX 4080",
+        "vendor": "nvidia",
+        "releaseDate": "2022",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 16,
+        "fp32Tflops": 48.83,
+        "bandwidthGBs": 717
+      },
+      {
+        "name": "Radeon RX 9070 XT",
+        "vendor": "amd",
+        "releaseDate": "2025-03-06",
+        "architecture": "RDNA 4",
+        "vramGiB": 16,
+        "fp32Tflops": 48.7,
+        "bandwidthGBs": 640
+      },
+      {
+        "name": "Radeon AI PRO R9700",
+        "vendor": "amd",
+        "releaseDate": "2025",
+        "architecture": "RDNA 4",
+        "vramGiB": 32,
+        "fp32Tflops": 47.8,
+        "bandwidthGBs": 640
+      },
+      {
+        "name": "Radeon RX 7900 GRE",
+        "vendor": "amd",
+        "releaseDate": "2023-07-27",
+        "architecture": "RDNA 3",
+        "vramGiB": 16,
+        "fp32Tflops": 46,
+        "bandwidthGBs": 576
+      },
+      {
+        "name": "GeForce RTX 4070 Ti SUPER",
+        "vendor": "nvidia",
+        "releaseDate": "2024",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 16,
+        "fp32Tflops": 44.1,
+        "bandwidthGBs": 672
+      },
+      {
+        "name": "GeForce RTX 5070 Ti",
+        "vendor": "nvidia",
+        "releaseDate": "2025-02-20",
+        "architecture": "Blackwell",
+        "vramGiB": 16,
+        "fp32Tflops": 43.9,
+        "bandwidthGBs": 896
+      },
+      {
+        "name": "GeForce RTX 4070 Ti",
+        "vendor": "nvidia",
+        "releaseDate": "2023",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 12,
+        "fp32Tflops": 40.09,
+        "bandwidthGBs": 504
+      },
+      {
+        "name": "GeForce RTX 3090 Ti",
+        "vendor": "nvidia",
+        "releaseDate": "2022",
+        "architecture": "Ampere",
+        "vramGiB": 24,
+        "fp32Tflops": 40,
+        "bandwidthGBs": 1008
+      },
+      {
+        "name": "Radeon RX 7800 XT",
+        "vendor": "amd",
+        "releaseDate": "2023-09-06",
+        "architecture": "RDNA 3",
+        "vramGiB": 16,
+        "fp32Tflops": 37.3,
+        "bandwidthGBs": 624
+      },
+      {
+        "name": "Radeon RX 9070",
+        "vendor": "amd",
+        "releaseDate": "2025-03-06",
+        "architecture": "RDNA 4",
+        "vramGiB": 16,
+        "fp32Tflops": 36.1,
+        "bandwidthGBs": 640
+      },
+      {
+        "name": "GeForce RTX 3090",
+        "vendor": "nvidia",
+        "releaseDate": "2020",
+        "architecture": "Ampere",
+        "vramGiB": 24,
+        "fp32Tflops": 35.69,
+        "bandwidthGBs": 936
+      },
+      {
+        "name": "GeForce RTX 4070 SUPER",
+        "vendor": "nvidia",
+        "releaseDate": "2024",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 12,
+        "fp32Tflops": 35.55,
+        "bandwidthGBs": 504
+      },
+      {
+        "name": "Radeon RX 7700 XT",
+        "vendor": "amd",
+        "releaseDate": "2023-09-06",
+        "architecture": "RDNA 3",
+        "vramGiB": 12,
+        "fp32Tflops": 35.2,
+        "bandwidthGBs": 432
+      },
+      {
+        "name": "Radeon RX 9070 GRE",
+        "vendor": "amd",
+        "releaseDate": "2025",
+        "architecture": "RDNA 4",
+        "vramGiB": 12,
+        "fp32Tflops": 34.3,
+        "bandwidthGBs": 432
+      },
+      {
+        "name": "GeForce RTX 3080 Ti",
+        "vendor": "nvidia",
+        "releaseDate": "2021",
+        "architecture": "Ampere",
+        "vramGiB": 12,
+        "fp32Tflops": 34.2,
+        "bandwidthGBs": 912
+      },
+      {
+        "name": "GeForce RTX 5070",
+        "vendor": "nvidia",
+        "releaseDate": "2025-03-05",
+        "architecture": "Blackwell",
+        "vramGiB": 12,
+        "fp32Tflops": 30.84,
+        "bandwidthGBs": 672
+      },
+      {
+        "name": "GeForce RTX 3080 12GB",
+        "vendor": "nvidia",
+        "releaseDate": "2022",
+        "architecture": "Ampere",
+        "vramGiB": 12,
+        "fp32Tflops": 30.64,
+        "bandwidthGBs": 912
+      },
+      {
+        "name": "GeForce RTX 3080 10GB",
+        "vendor": "nvidia",
+        "releaseDate": "2020",
+        "architecture": "Ampere",
+        "vramGiB": 10,
+        "fp32Tflops": 29.77,
+        "bandwidthGBs": 760
+      },
+      {
+        "name": "GeForce RTX 4070 12GB GDDR6X",
+        "vendor": "nvidia",
+        "releaseDate": "2023",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 12,
+        "fp32Tflops": 29.2,
+        "bandwidthGBs": 504
+      },
+      {
+        "name": "Radeon RX 9060 XT 16GB",
+        "vendor": "amd",
+        "releaseDate": "2025-06-05",
+        "architecture": "RDNA 4",
+        "vramGiB": 16,
+        "fp32Tflops": 25.6,
+        "bandwidthGBs": 320
+      },
+      {
+        "name": "Radeon RX 9060 XT 8GB",
+        "vendor": "amd",
+        "releaseDate": "2025-06-05",
+        "architecture": "RDNA 4",
+        "vramGiB": 8,
+        "fp32Tflops": 25.6,
+        "bandwidthGBs": 320
+      },
+      {
+        "name": "GeForce RTX 5060 Ti 16GB",
+        "vendor": "nvidia",
+        "releaseDate": "2025-04-16",
+        "architecture": "Blackwell",
+        "vramGiB": 16,
+        "fp32Tflops": 23.69,
+        "bandwidthGBs": 448
+      },
+      {
+        "name": "GeForce RTX 5060 Ti 8GB",
+        "vendor": "nvidia",
+        "releaseDate": "2025-04-16",
+        "architecture": "Blackwell",
+        "vramGiB": 8,
+        "fp32Tflops": 23.69,
+        "bandwidthGBs": 448
+      },
+      {
+        "name": "Radeon RX 6950 XT",
+        "vendor": "amd",
+        "releaseDate": "2022-05-10",
+        "architecture": "RDNA 2",
+        "vramGiB": 16,
+        "fp32Tflops": 23.65,
+        "bandwidthGBs": 576
+      },
+      {
+        "name": "Radeon RX 6900 XT",
+        "vendor": "amd",
+        "releaseDate": "2020-12-08",
+        "architecture": "RDNA 2",
+        "vramGiB": 16,
+        "fp32Tflops": 23.04,
+        "bandwidthGBs": 512
+      },
+      {
+        "name": "Radeon RX 7600 XT",
+        "vendor": "amd",
+        "releaseDate": "2024-01-24",
+        "architecture": "RDNA 3",
+        "vramGiB": 16,
+        "fp32Tflops": 22.6,
+        "bandwidthGBs": 288
+      },
+      {
+        "name": "GeForce RTX 4060 Ti 16GB",
+        "vendor": "nvidia",
+        "releaseDate": "2023",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 16,
+        "fp32Tflops": 22.11,
+        "bandwidthGBs": 288
+      },
+      {
+        "name": "GeForce RTX 4060 Ti 8GB",
+        "vendor": "nvidia",
+        "releaseDate": "2023",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 8,
+        "fp32Tflops": 22.11,
+        "bandwidthGBs": 288
+      },
+      {
+        "name": "GeForce RTX 3070 Ti",
+        "vendor": "nvidia",
+        "releaseDate": "2021",
+        "architecture": "Ampere",
+        "vramGiB": 8,
+        "fp32Tflops": 21.75,
+        "bandwidthGBs": 608
+      },
+      {
+        "name": "Radeon RX 7600",
+        "vendor": "amd",
+        "releaseDate": "2023-05-25",
+        "architecture": "RDNA 3",
+        "vramGiB": 8,
+        "fp32Tflops": 21.7,
+        "bandwidthGBs": 288
+      },
+      {
+        "name": "Radeon RX 9060",
+        "vendor": "amd",
+        "releaseDate": "2025",
+        "architecture": "RDNA 4",
+        "vramGiB": 8,
+        "fp32Tflops": 21.4,
+        "bandwidthGBs": 288
+      },
+      {
+        "name": "Radeon RX 6800 XT",
+        "vendor": "amd",
+        "releaseDate": "2020-11-18",
+        "architecture": "RDNA 2",
+        "vramGiB": 16,
+        "fp32Tflops": 20.74,
+        "bandwidthGBs": 512
+      },
+      {
+        "name": "GeForce RTX 3070",
+        "vendor": "nvidia",
+        "releaseDate": "2020",
+        "architecture": "Ampere",
+        "vramGiB": 8,
+        "fp32Tflops": 20.37,
+        "bandwidthGBs": 448
+      },
+      {
+        "name": "GeForce RTX 5060",
+        "vendor": "nvidia",
+        "releaseDate": "2025-05-19",
+        "architecture": "Blackwell",
+        "vramGiB": 8,
+        "fp32Tflops": 19.2,
+        "bandwidthGBs": 448
+      },
+      {
+        "name": "Arc A770 16GB",
+        "vendor": "intel",
+        "releaseDate": "2022",
+        "architecture": "Xe HPG",
+        "vramGiB": 16,
+        "fp32Tflops": 17.2032,
+        "bandwidthGBs": 560
+      },
+      {
+        "name": "Arc A770 8GB",
+        "vendor": "intel",
+        "releaseDate": "2022",
+        "architecture": "Xe HPG",
+        "vramGiB": 8,
+        "fp32Tflops": 17.2032,
+        "bandwidthGBs": 512
+      },
+      {
+        "name": "GeForce RTX 3060 Ti 8GB GDDR6",
+        "vendor": "nvidia",
+        "releaseDate": "2020",
+        "architecture": "Ampere",
+        "vramGiB": 8,
+        "fp32Tflops": 16.25,
+        "bandwidthGBs": 448
+      },
+      {
+        "name": "Radeon RX 6800",
+        "vendor": "amd",
+        "releaseDate": "2020-11-18",
+        "architecture": "RDNA 2",
+        "vramGiB": 16,
+        "fp32Tflops": 16.17,
+        "bandwidthGBs": 512
+      },
+      {
+        "name": "GeForce RTX 4060",
+        "vendor": "nvidia",
+        "releaseDate": "2023",
+        "architecture": "Ada Lovelace",
+        "vramGiB": 8,
+        "fp32Tflops": 15.11,
+        "bandwidthGBs": 272
+      },
+      {
+        "name": "Arc A750",
+        "vendor": "intel",
+        "releaseDate": "2022",
+        "architecture": "Xe HPG",
+        "vramGiB": 8,
+        "fp32Tflops": 14.6944,
+        "bandwidthGBs": 512
+      },
+      {
+        "name": "GeForce RTX 2080 Ti",
+        "vendor": "nvidia",
+        "releaseDate": "2018",
+        "architecture": "Turing",
+        "vramGiB": 11,
+        "fp32Tflops": 14.27,
+        "bandwidthGBs": 616
+      },
+      {
+        "name": "Arc B580",
+        "vendor": "intel",
+        "releaseDate": "2024-12",
+        "architecture": "Xe2 HPG",
+        "vramGiB": 12,
+        "fp32Tflops": 13.6704,
+        "bandwidthGBs": 456
+      },
+      {
+        "name": "Radeon RX 6750 XT",
+        "vendor": "amd",
+        "releaseDate": "2022-05-10",
+        "architecture": "RDNA 2",
+        "vramGiB": 12,
+        "fp32Tflops": 13.31,
+        "bandwidthGBs": 432
+      },
+      {
+        "name": "Radeon RX 6700 XT",
+        "vendor": "amd",
+        "releaseDate": "2021-03",
+        "architecture": "RDNA 2",
+        "vramGiB": 12,
+        "fp32Tflops": 13.21,
+        "bandwidthGBs": 384
+      },
+      {
+        "name": "Radeon RX 6750 GRE 12GB",
+        "vendor": "amd",
+        "releaseDate": "2023-10-17",
+        "architecture": "RDNA 2",
+        "vramGiB": 12,
+        "fp32Tflops": 13.21,
+        "bandwidthGBs": 384
+      },
+      {
+        "name": "GeForce RTX 5050",
+        "vendor": "nvidia",
+        "releaseDate": "2025",
+        "architecture": "Blackwell",
+        "vramGiB": 8,
+        "fp32Tflops": 13.16,
+        "bandwidthGBs": 320
+      },
+      {
+        "name": "GeForce RTX 3060 12GB",
+        "vendor": "nvidia",
+        "releaseDate": "2021",
+        "architecture": "Ampere",
+        "vramGiB": 12,
+        "fp32Tflops": 12.76,
+        "bandwidthGBs": 360
+      },
+      {
+        "name": "Arc Pro B60",
+        "vendor": "intel",
+        "releaseDate": "2025",
+        "architecture": "Xe2 HPG",
+        "vramGiB": 24,
+        "fp32Tflops": 12.28,
+        "bandwidthGBs": 456
+      },
+      {
+        "name": "Arc B570",
+        "vendor": "intel",
+        "releaseDate": "2025-01",
+        "architecture": "Xe2 HPG",
+        "vramGiB": 10,
+        "fp32Tflops": 11.52,
+        "bandwidthGBs": 380
+      },
+      {
+        "name": "GeForce GTX 1080 Ti",
+        "vendor": "nvidia",
+        "releaseDate": "2017",
+        "architecture": "Pascal",
+        "vramGiB": 11,
+        "fp32Tflops": 11.3,
+        "bandwidthGBs": 484
+      },
+      {
+        "name": "Radeon RX 6700",
+        "vendor": "amd",
+        "releaseDate": null,
+        "architecture": "RDNA 2",
+        "vramGiB": 10,
+        "fp32Tflops": 11.29,
+        "bandwidthGBs": 320
+      },
+      {
+        "name": "Radeon RX 6750 GRE 10GB",
+        "vendor": "amd",
+        "releaseDate": "2023-10-17",
+        "architecture": "RDNA 2",
+        "vramGiB": 10,
+        "fp32Tflops": 11.29,
+        "bandwidthGBs": 320
+      },
+      {
+        "name": "GeForce RTX 2080 SUPER",
+        "vendor": "nvidia",
+        "releaseDate": "2019",
+        "architecture": "Turing",
+        "vramGiB": 8,
+        "fp32Tflops": 11.18,
+        "bandwidthGBs": 496
+      },
+      {
+        "name": "Radeon RX 6650 XT",
+        "vendor": "amd",
+        "releaseDate": "2022-05-10",
+        "architecture": "RDNA 2",
+        "vramGiB": 8,
+        "fp32Tflops": 10.79,
+        "bandwidthGBs": 280
+      },
+      {
+        "name": "Arc Pro B50",
+        "vendor": "intel",
+        "releaseDate": "2025",
+        "architecture": "Xe2 HPG",
+        "vramGiB": 16,
+        "fp32Tflops": 10.65,
+        "bandwidthGBs": 224
+      },
+      {
+        "name": "GeForce RTX 2080",
+        "vendor": "nvidia",
+        "releaseDate": "2018",
+        "architecture": "Turing",
+        "vramGiB": 8,
+        "fp32Tflops": 10.6,
+        "bandwidthGBs": 448
+      },
+      {
+        "name": "Radeon RX 6600 XT",
+        "vendor": "amd",
+        "releaseDate": "2021-08-11",
+        "architecture": "RDNA 2",
+        "vramGiB": 8,
+        "fp32Tflops": 10.6,
+        "bandwidthGBs": 256
+      },
+      {
+        "name": "Arc A580",
+        "vendor": "intel",
+        "releaseDate": "2023",
+        "architecture": "Xe HPG",
+        "vramGiB": 8,
+        "fp32Tflops": 10.4448,
+        "bandwidthGBs": 512
+      },
+      {
+        "name": "GeForce RTX 3050 8GB",
+        "vendor": "nvidia",
+        "releaseDate": "2022",
+        "architecture": "Ampere",
+        "vramGiB": 8,
+        "fp32Tflops": 9.11,
+        "bandwidthGBs": 224
+      },
+      {
+        "name": "GeForce RTX 2070 SUPER",
+        "vendor": "nvidia",
+        "releaseDate": "2019",
+        "architecture": "Turing",
+        "vramGiB": 8,
+        "fp32Tflops": 9.06,
+        "bandwidthGBs": 448
+      },
+      {
+        "name": "Radeon RX 6600",
+        "vendor": "amd",
+        "releaseDate": "2021-10-13",
+        "architecture": "RDNA 2",
+        "vramGiB": 8,
+        "fp32Tflops": 8.93,
+        "bandwidthGBs": 224
+      },
+      {
+        "name": "GeForce GTX 1080",
+        "vendor": "nvidia",
+        "releaseDate": "2016-05-27",
+        "architecture": "Pascal",
+        "vramGiB": 8,
+        "fp32Tflops": 8.873,
+        "bandwidthGBs": 320
+      },
+      {
+        "name": "GeForce RTX 2070",
+        "vendor": "nvidia",
+        "releaseDate": "2018",
+        "architecture": "Turing",
+        "vramGiB": 8,
+        "fp32Tflops": 7.88,
+        "bandwidthGBs": 448
+      },
+      {
+        "name": "GeForce RTX 2060 SUPER",
+        "vendor": "nvidia",
+        "releaseDate": "2019",
+        "architecture": "Turing",
+        "vramGiB": 8,
+        "fp32Tflops": 7.18,
+        "bandwidthGBs": 448
+      },
+      {
+        "name": "GeForce RTX 2060 12GB",
+        "vendor": "nvidia",
+        "releaseDate": "2021",
+        "architecture": "Turing",
+        "vramGiB": 12,
+        "fp32Tflops": 7.18,
+        "bandwidthGBs": 336
+      },
+      {
+        "name": "GeForce RTX 3050 6GB",
+        "vendor": "nvidia",
+        "releaseDate": "2024",
+        "architecture": "Ampere",
+        "vramGiB": 6,
+        "fp32Tflops": 6.77,
+        "bandwidthGBs": 168
+      },
+      {
+        "name": "GeForce GTX 1070",
+        "vendor": "nvidia",
+        "releaseDate": "2016-06-10",
+        "architecture": "Pascal",
+        "vramGiB": 8,
+        "fp32Tflops": 6.5,
+        "bandwidthGBs": 256
+      },
+      {
+        "name": "GeForce RTX 2060 6GB",
+        "vendor": "nvidia",
+        "releaseDate": "2019",
+        "architecture": "Turing",
+        "vramGiB": 6,
+        "fp32Tflops": 6.45,
+        "bandwidthGBs": 336
+      },
+      {
+        "name": "GeForce GTX 1660 Ti",
+        "vendor": "nvidia",
+        "releaseDate": "2019",
+        "architecture": "Turing",
+        "vramGiB": 6,
+        "fp32Tflops": 5.44,
+        "bandwidthGBs": 288
+      },
+      {
+        "name": "GeForce GTX 1660 SUPER",
+        "vendor": "nvidia",
+        "releaseDate": "2019",
+        "architecture": "Turing",
+        "vramGiB": 6,
+        "fp32Tflops": 5.03,
+        "bandwidthGBs": 336
+      },
+      {
+        "name": "GeForce GTX 1660",
+        "vendor": "nvidia",
+        "releaseDate": "2019",
+        "architecture": "Turing",
+        "vramGiB": 6,
+        "fp32Tflops": 5.03,
+        "bandwidthGBs": 192
+      },
+      {
+        "name": "GeForce GTX 1650 SUPER",
+        "vendor": "nvidia",
+        "releaseDate": "2019",
+        "architecture": "Turing",
+        "vramGiB": 4,
+        "fp32Tflops": 4.42,
+        "bandwidthGBs": 192
+      },
+      {
+        "name": "GeForce GTX 1060 6GB",
+        "vendor": "nvidia",
+        "releaseDate": "2016-07-19",
+        "architecture": "Pascal",
+        "vramGiB": 6,
+        "fp32Tflops": 4.3725,
+        "bandwidthGBs": 192
+      },
+      {
+        "name": "GeForce GTX 1060 3GB",
+        "vendor": "nvidia",
+        "releaseDate": "2016",
+        "architecture": "Pascal",
+        "vramGiB": 3,
+        "fp32Tflops": 3.9352,
+        "bandwidthGBs": 192
+      },
+      {
+        "name": "GeForce GTX 1650 GDDR5",
+        "vendor": "nvidia",
+        "releaseDate": "2019",
+        "architecture": "Turing",
+        "vramGiB": 4,
+        "fp32Tflops": 2.98,
+        "bandwidthGBs": 128
+      },
+      {
+        "name": "GeForce GTX 1650 GDDR6",
+        "vendor": "nvidia",
+        "releaseDate": "2020",
+        "architecture": "Turing",
+        "vramGiB": 4,
+        "fp32Tflops": 2.85,
+        "bandwidthGBs": 192
+      },
+      {
+        "name": "GeForce GTX 1050 Ti",
+        "vendor": "nvidia",
+        "releaseDate": "2016",
+        "architecture": "Pascal",
+        "vramGiB": 4,
+        "fp32Tflops": 2.1381,
+        "bandwidthGBs": 112
+      },
+      {
+        "name": "GeForce GTX 1050 2GB",
+        "vendor": "nvidia",
+        "releaseDate": "2016",
+        "architecture": "Pascal",
+        "vramGiB": 2,
+        "fp32Tflops": 1.8624,
+        "bandwidthGBs": 112
       }
     ]
   }

@@ -159,6 +159,14 @@ const assert = require('node:assert/strict');
       if (viewport.width === 390) await page.screenshot({ path: path.join(shots, '390-en-full.png'), fullPage: true });
       await page.locator('#language-toggle').click();
       assert.equal(await page.locator('html').getAttribute('lang'), 'zh-CN');
+      await page.locator('#hardware-gpu').selectOption('Radeon RX 7900 XTX');
+      assert.equal(await page.locator('.hardware-estimate-cards strong').count(), 2);
+      assert.equal(await page.locator('#hardware-results tbody tr').count(), 1);
+      await page.locator('#hardware-vendor').selectOption('nvidia');
+      assert.equal(await page.locator('#hardware-gpu').inputValue(), '');
+      await page.locator('#hardware-gpu').selectOption('GeForce RTX 4090');
+      assert.match(await page.locator('.hardware-estimate details').textContent(), /82.58 \/ 61.4/);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), viewport.width);
       reports.push({ viewport, metrics, interactions: 'passed', englishWidth });
     }
     assert.equal(errors.length, 0, `Browser errors: ${errors.join('\n')}`);
