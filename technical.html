@@ -16,6 +16,7 @@
   <script defer src="memory-model.js"></script>
   <script defer src="memory.js"></script>
   <script defer src="agent-showcase.js"></script>
+  <script defer src="hardware.js"></script>
   <script defer src="app.js"></script>
 </head>
 <body>
@@ -89,6 +90,21 @@
             <p class="visual-note" data-en="Logical heat queues and simulated tokens, not live inference or a model's exact tokenization. Cache eviction does not write weights back to SSD.">逻辑冷热队列与模拟 token，非实时推理或模型真实分词。缓存回收不将权重写回 SSD。</p>
           </div>
         </div>
+        <section class="hardware-finder" id="hardware-finder" aria-labelledby="hardware-title">
+          <span class="eyebrow">PERFORMANCE REFERENCE</span>
+          <h3 id="hardware-title" data-en="Choose your hardware. Explore performance.">选择硬件，查看性能参考</h3>
+          <p data-en="Select the GPU you plan to use, then compare measured results and rough estimates based on RX 7900 XTX.">选择你准备用于推理的显卡，查看已有实测与基于 RX 7900 XTX 的粗略估算。</p>
+          <div id="hardware-form">
+            <div class="hardware-fields">
+              <label class="hardware-vendor-field"><span data-en="GPU vendor">显卡品牌</span><select id="hardware-vendor"><option value="amd">AMD</option><option value="nvidia">NVIDIA</option><option value="intel">Intel</option></select></label>
+              <label class="hardware-gpu-field"><span data-en="GPU model">显卡型号</span><select id="hardware-gpu" required><option value="" disabled selected data-en="Choose a GPU model">请选择显卡型号</option></select></label>
+              <label><span data-en="Model / quantization">模型 / 量化</span><select id="hardware-model"></select></label>
+              <label><span data-en="Context">上下文</span><select id="hardware-context"></select></label>
+              <label><span data-en="Concurrent sessions">并发会话</span><select id="hardware-lanes"><option value="1">×1</option><option value="2">×2</option><option value="3">×3</option></select></label>
+            </div>
+          </div>
+          <div id="hardware-results" aria-live="polite"></div>
+        </section>
         <div class="benchmark">
           <div class="benchmark-heading"><div><span class="eyebrow" data-benchmark-label="heading">实测吞吐量</span><h3 data-en="Real numbers. Real hardware.">性能，拿结果说话。</h3></div><div class="segmented" aria-label="测试上下文"><button class="active" data-context="4000" aria-pressed="true">4K <span data-en="context">上下文</span></button><button data-context="30000" aria-pressed="false">30K <span data-en="context">上下文</span></button><button data-context="150000" aria-pressed="false">150K <span data-en="context">上下文</span></button></div></div>
           <div class="benchmark-controls"><div class="segmented model-selector" aria-label="测试模型"><button class="active" data-model="qwen35" aria-pressed="true"><span>Qwen3.6-35B</span><span>I-Balanced · ≈5.91 bpw</span></button><button data-model="flashnext" aria-pressed="false"><span>FlashNext-176B</span><span>4.27 bpw</span></button></div><span data-en="MEAN AGGREGATE DECODE / tok/s">并发总 Decode 平均 / tok/s</span></div>

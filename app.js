@@ -3,7 +3,7 @@
   if (window.lucide) lucide.createIcons();
 
   let language = "zh";
-  const { releases, benchmarks } = window.MOE4ALL_DATA;
+  const { releases, benchmarks, benchmarkCatalog, benchmarkDatasets, gpuSpecs } = window.MOE4ALL_DATA;
   const memory = window.MoeMemory.create({ root: document.querySelector(".memory-visual"), getLanguage: () => language });
   const wave = document.querySelector("#audio-wave");
   for (let i = 0; i < 88; i++) {
@@ -136,6 +136,7 @@
   const agent = window.MoeAgentShowcase.create({ root: document.querySelector(".agent-gallery"), dialog: document.querySelector("#image-dialog"), getLanguage: () => language, showDialog });
 
   const translations = [...document.querySelectorAll("[data-en]")].map(element => ({ element, zh: element.innerHTML, en: element.dataset.en }));
+  const hardware = window.MoeHardware.create({ root: document.querySelector("#hardware-finder"), benchmarks, catalog: benchmarkCatalog, datasets: benchmarkDatasets, specs: gpuSpecs.gpus, getLanguage: () => language });
   const languageToggle = document.querySelector("#language-toggle");
   function setLanguage(value) {
     language = value;
@@ -149,6 +150,7 @@
     renderBenchmark();
     memory.refreshLanguage();
     agent.refreshLanguage();
+    hardware.refreshLanguage();
   }
   languageToggle.addEventListener("click", () => {
     setLanguage(language === "zh" ? "en" : "zh");
