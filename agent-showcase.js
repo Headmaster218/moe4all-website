@@ -6,8 +6,20 @@
       const track = root.querySelector(".agent-gallery-track");
       const reduced = matchMedia("(prefers-reduced-motion: reduce)");
       const expanded = dialog.querySelector("iframe");
-      let view = views[0], paused = reduced.matches, visible = false, timer = null;
+      let view = views[0], paused = reduced.matches, visible = false, near = false, timer = null;
       const frames = () => [...root.querySelectorAll("iframe"), expanded];
+      function loadFrame(frame) {
+        if (!frame?.dataset.src) return;
+        frame.loading = "eager";
+        frame.src = frame.dataset.src;
+        delete frame.dataset.src;
+      }
+      function prepareSlides() {
+        if (!near) return;
+        for (const value of [view, views[(views.indexOf(view) + 1) % views.length]]) {
+          loadFrame(root.querySelector(`[data-slide="${value}"] iframe`));
+        }
+      }
       function send(frame) {
         frame.contentWindow?.postMessage({ type: "moe-demo", language: getLanguage(), view: frame.closest("[data-slide]")?.dataset.slide || view }, "*");
       }
@@ -30,7 +42,7 @@
         button.setAttribute("aria-label", button.title); button.setAttribute("aria-pressed", String(paused));
       }
       function select(value, manual = false) {
-        view = value; if (manual) paused = true;
+        view = value; if (manual) { paused = true; near = true; }
         root.dataset.currentView = view;
         root.querySelectorAll("[data-view]").forEach(button => {
           const selected = button.dataset.view === view;
@@ -42,7 +54,7 @@
           slide.setAttribute("aria-roledescription", "slide");
         });
         root.querySelector("#agent-count").textContent = `0${views.indexOf(view) + 1} / 04`;
-        fit(); send(expanded); updateTimer();
+        prepareSlides(); fit(); if (dialog.open) send(expanded); updateTimer();
       }
       function refreshLanguage() {
         for (const [id, zh, en] of [["agent-prev", "上一页", "Previous slide"], ["agent-next", "下一页", "Next slide"], ["expand-gallery", "放大演示界面", "Expand the demo"]]) {
@@ -63,7 +75,7 @@
       root.querySelector("#agent-prev").addEventListener("click", () => select(views[(views.indexOf(view) + views.length - 1) % views.length], true));
       root.querySelector("#agent-next").addEventListener("click", () => select(views[(views.indexOf(view) + 1) % views.length], true));
       root.querySelector("#agent-play").addEventListener("click", () => { paused = !paused; updateTimer(); });
-      root.querySelector("#expand-gallery").addEventListener("click", () => { showDialog(dialog); send(expanded); updateTimer(); });
+      root.querySelector("#expand-gallery").addEventListener("click", () => { loadFrame(expanded); showDialog(dialog); send(expanded); updateTimer(); });
       root.addEventListener("mouseenter", updateTimer); root.addEventListener("mouseleave", updateTimer);
       root.addEventListener("focusin", event => { if (event.target.id !== "agent-play") { paused = true; updateTimer(); } });
       dialog.addEventListener("close", updateTimer); document.addEventListener("visibilitychange", updateTimer);
@@ -74,8 +86,10 @@
       });
       frames().forEach(frame => frame.addEventListener("load", () => send(frame)));
       new ResizeObserver(fit).observe(root.querySelector(".agent-gallery-window"));
-      if ("IntersectionObserver" in window) new IntersectionObserver(entries => { visible = entries[0].isIntersecting; updateTimer(); }, { threshold: .1 }).observe(root);
-      else visible = true;
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(entries => { visible = entries[0].isIntersecting; updateTimer(); }, { threshold: .1 }).observe(root);
+        new IntersectionObserver(entries => { near = entries[0].isIntersecting; prepareSlides(); }, { rootMargin: "600px 0px" }).observe(root);
+      } else { visible = true; near = true; }
       select(view); refreshLanguage();
       return { refreshLanguage };
     }

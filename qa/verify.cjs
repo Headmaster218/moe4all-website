@@ -21,6 +21,7 @@ const assert = require('node:assert/strict');
   const reports = [];
   const url = pathToFileURL(path.join(root, 'technical.html')).href;
   const benchmarks = JSON.parse(fs.readFileSync(path.join(root, 'content/benchmarks.json'), 'utf8'));
+  const shortContext = benchmarks.contexts[0];
 
   try {
     for (const viewport of [{ width: 1440, height: 960 }, { width: 1920, height: 1080 }, { width: 3840, height: 2160 }, { width: 768, height: 1024 }, { width: 390, height: 844 }, { width: 320, height: 700 }]) {
@@ -28,7 +29,7 @@ const assert = require('node:assert/strict');
       await page.goto(url);
       await page.waitForFunction(() => window.lucide && document.querySelectorAll('.expert-cell').length === 48);
       assert.equal(await page.locator('[data-model][aria-pressed="true"]').getAttribute('data-model'), 'qwen35');
-      assert.equal(await page.locator('[data-context][aria-pressed="true"]').getAttribute('data-context'), '2000');
+      assert.equal(await page.locator('[data-context][aria-pressed="true"]').getAttribute('data-context'), String(shortContext));
       assert.deepEqual(await page.locator('[data-model]').evaluateAll(buttons => buttons.map(button => button.dataset.model)), ['qwen35', 'flashnext']);
       await page.evaluate(async () => {
         await Promise.all([...document.querySelectorAll('img[src]')].map(img => {
@@ -63,9 +64,9 @@ const assert = require('node:assert/strict');
           assert.deepEqual(values.map(value => Number.parseFloat(value)), model.results[context].decode);
           assert.equal(await page.locator('#prefill-speed').innerText(), Number.isFinite(model.results[context].prefill) ? model.results[context].prefill.toFixed(2) : '—');
           const maximum = Math.max(...benchmarks.models.flatMap(item => Object.entries(item.results)
-            .filter(([depth]) => (depth === '2000') === (context === 2000)).flatMap(([, result]) => result.decode)));
+            .filter(([depth]) => (depth === String(shortContext)) === (context === shortContext)).flatMap(([, result]) => result.decode)));
           const widths = await page.locator('[data-decode-bar]').evaluateAll(bars => bars.map(bar => parseFloat(bar.style.width)));
-          widths.forEach((width, index) => assert.ok(Math.abs(width - model.results[context].decode[index] / maximum * 100) < .001, '2K and long-context chart scales must be independent'));
+          widths.forEach((width, index) => assert.ok(Math.abs(width - model.results[context].decode[index] / maximum * 100) < .001, 'Short and long-context chart scales must be independent'));
         }
       }
       await page.locator('#benchmark-details').click();
@@ -73,10 +74,10 @@ const assert = require('node:assert/strict');
       if (viewport.width === 390) await page.screenshot({ path: path.join(shots, '390-benchmark-details.png') });
       await page.keyboard.press('Escape');
       await page.locator('[data-model="qwen35"]').click();
-      await page.locator('[data-context="2000"]').click();
+      await page.locator(`[data-context="${shortContext}"]`).click();
       await page.locator('.benchmark').screenshot({ path: path.join(shots, `benchmark-${viewport.width}-zh.png`) });
       await page.locator('[data-model="flashnext"]').click();
-      assert.equal(await page.locator('[data-context="2000"]').isVisible(), false);
+      assert.equal(await page.locator(`[data-context="${shortContext}"]`).isVisible(), false);
       await page.locator('[data-context="30000"]').click();
       assert.equal(await page.locator('#memory-toggle').getAttribute('aria-pressed'), 'true');
       assert.equal(await page.locator('.compute-slot').count(), 4);
@@ -138,7 +139,7 @@ const assert = require('node:assert/strict');
       await page.locator('#language-toggle').click();
       assert.equal(await page.locator('html').getAttribute('lang'), 'en');
       await page.locator('[data-model="qwen35"]').click();
-      await page.locator('[data-context="2000"]').click();
+      await page.locator(`[data-context="${shortContext}"]`).click();
       await page.locator('.benchmark').screenshot({ path: path.join(shots, `benchmark-${viewport.width}-en.png`) });
       const englishWidth = await page.evaluate(() => document.documentElement.scrollWidth);
       assert.equal(englishWidth, viewport.width, `English horizontal overflow at ${viewport.width}`);

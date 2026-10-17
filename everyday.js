@@ -14,8 +14,20 @@
   const hero = document.querySelector("#hero-screen"), expanded = document.querySelector("#expanded-product");
   const dialog = document.querySelector("#product-dialog");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-  let paused = reduced.matches, heroVisible = false, carouselVisible = false, timer = null;
+  let paused = reduced.matches, heroVisible = false, carouselVisible = false, carouselNear = false, timer = null;
   const frames = () => [...document.querySelectorAll("iframe")];
+  function loadFrame(frame) {
+    if (!frame?.dataset.src) return;
+    frame.loading = "eager";
+    frame.src = frame.dataset.src;
+    delete frame.dataset.src;
+  }
+  function prepareSlides() {
+    if (!carouselNear) return;
+    for (const value of [view, views[(views.indexOf(view) + 1) % views.length]]) {
+      loadFrame(carousel.querySelector(`[data-slide="${value}"] iframe`));
+    }
+  }
   function send(frame) {
     const ownView = frame.closest("[data-slide]")?.dataset.slide || view;
     frame.contentWindow?.postMessage({ type: "moe-demo", language, view: ownView }, "*");
@@ -58,7 +70,7 @@
   }
   function selectView(value, manual=false) {
     view=value;
-    if(manual) paused=true;
+    if(manual) { paused=true; carouselNear=true; }
     carousel.dataset.currentView=view;
     document.querySelectorAll("[data-view]").forEach(button => {
       const selected=button.dataset.view===view;
@@ -72,7 +84,7 @@
       slide.setAttribute("aria-roledescription","slide");
     });
     document.querySelector("#carousel-count").textContent=`0${views.indexOf(view)+1} / 04`;
-    fitCarousel(); send(hero); if(dialog.open)send(expanded); updateTimer();
+    prepareSlides(); fitCarousel(); send(hero); if(dialog.open)send(expanded); updateTimer();
   }
   function render() {
     window.MoeSite.renderReleases(language);
@@ -125,13 +137,17 @@
       }
       updateTimer();
     },{threshold:.1});observer.observe(carousel);observer.observe(document.querySelector(".hero-stage"));
-  }else{heroVisible=true;}
+    new IntersectionObserver(entries=>{
+      carouselNear=entries[0].isIntersecting;
+      prepareSlides();
+    },{rootMargin:"600px 0px"}).observe(carousel);
+  }else{heroVisible=true;carouselNear=true;prepareSlides();}
   const menu=document.querySelector("#main-nav"),menuToggle=document.querySelector("#menu-toggle");
   const closeMenu=()=>{menu.classList.remove("open");menuToggle.setAttribute("aria-expanded","false");};
   menuToggle.addEventListener("click",()=>menuToggle.setAttribute("aria-expanded",String(menu.classList.toggle("open"))));
   menu.querySelectorAll("a").forEach(link=>link.addEventListener("click",closeMenu));
   document.addEventListener("keydown",event=>{if(event.key==="Escape")closeMenu();});
-  document.querySelector("#expand-product").addEventListener("click",()=>{dialog.showModal();document.body.classList.add("modal-open");send(expanded);updateTimer();});
+  document.querySelector("#expand-product").addEventListener("click",()=>{loadFrame(expanded);dialog.showModal();document.body.classList.add("modal-open");send(expanded);updateTimer();});
   document.querySelector("#close-product").addEventListener("click",()=>dialog.close());
   dialog.addEventListener("close",()=>{document.body.classList.remove("modal-open");updateTimer();});
   dialog.addEventListener("click",event=>{

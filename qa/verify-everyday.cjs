@@ -7,7 +7,8 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_PATH || 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe' });
   const errors = [], reports = [], externalRequests = [];
-  const shots = path.join(__dirname, 'screenshots'); fs.mkdirSync(shots, { recursive: true });
+  assert.ok(process.env.MOE4ALL_EVIDENCE_DIR, 'Set MOE4ALL_EVIDENCE_DIR under the shared work root');
+  const shots = path.join(process.env.MOE4ALL_EVIDENCE_DIR, 'website-screenshots'); fs.mkdirSync(shots, { recursive: true });
   try {
     const page = await browser.newPage({ reducedMotion: 'reduce', locale: 'zh-CN' });
     page.on('pageerror', error => errors.push(error.message));
@@ -116,7 +117,7 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
     }
     assert.equal(externalRequests.length, 0, 'Demo should not call a backend or any external service');
     assert.equal(errors.length, 0, errors.join('\n'));
-    fs.writeFileSync(path.join(__dirname, 'everyday-results.json'), JSON.stringify({ status: 'passed', reports, errors, externalRequests }, null, 2));
+    fs.writeFileSync(path.join(process.env.MOE4ALL_EVIDENCE_DIR, 'everyday-results.json'), JSON.stringify({ status: 'passed', reports, errors, externalRequests }, null, 2));
     console.log(JSON.stringify({ status: 'passed', reports, errors, externalRequests }, null, 2));
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
