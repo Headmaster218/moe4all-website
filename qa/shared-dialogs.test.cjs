@@ -41,6 +41,23 @@ test('the public audio section links to the audio project rather than Agent down
   assert.ok(!audio.includes('data-agent-download'));
 });
 
+test('both QR images use compact WebP assets and matching download filenames', () => {
+  const previewData = fs.readFileSync(path.join(root, 'site-data.js'), 'utf8');
+  for (const [key, name, ceiling] of [['wechatImage', 'wechat-contact', 27 * 1024], ['supportImage', 'wechat-support', 12 * 1024]]) {
+    const file = `assets/${name}.webp`;
+    assert.equal(site.contact[key], file);
+    assert.ok(previewData.includes(`"${key}": "${file}"`));
+    const bytes = fs.readFileSync(path.join(root, file));
+    assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+    assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
+    assert.ok(bytes.length < ceiling);
+  }
+  const script = fs.readFileSync(path.join(root, 'site-dialogs.js'), 'utf8');
+  assert.ok(script.includes('"MoE4All-WeChat.webp"'));
+  assert.ok(script.includes('"MoE4All-Support.webp"'));
+  assert.ok(!script.includes('MoE4All-WeChat.png'));
+});
+
 test('installation destinations are explicit and no unverified app-install protocol is advertised', () => {
   assert.equal(site.pluginInstall.repository, 'Headmaster218/dsh-llm-moe4all');
   assert.equal(site.pluginInstall.catalog, 'https://awesome-dsh-plugin.com/p/Headmaster218/dsh-llm-moe4all/');

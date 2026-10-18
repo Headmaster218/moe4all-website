@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir, cp } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { optimizeSite } from './optimize-site.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const releases = JSON.parse(await readFile(path.join(root, 'content/releases.json'), 'utf8'));
@@ -25,9 +26,11 @@ if (process.argv.includes('--preview')) {
 } else {
   const destination = path.resolve(process.env.MOE4ALL_SITE_OUTPUT || path.join(root, '_site'));
   await mkdir(destination, { recursive: true });
-  for (const file of ['index.html', 'technical.html', 'styles.css', 'app.js', 'memory-model.js', 'memory.js', 'agent-showcase.css', 'agent-showcase.js', 'release-model.js', 'site-ui.js', 'site-dialogs.js', 'site-dialogs.css', 'analytics.js', 'everyday.html', 'everyday.css', 'everyday.js', 'demo.html', 'demo.css', 'demo.js']) await cp(path.join(root, file), path.join(destination, file));
+  const files = ['index.html', 'technical.html', 'styles.css', 'app.js', 'memory-model.js', 'memory.js', 'agent-showcase.css', 'agent-showcase.js', 'release-model.js', 'site-ui.js', 'site-dialogs.js', 'site-dialogs.css', 'analytics.js', 'media.js', 'everyday.html', 'everyday.css', 'everyday.js', 'demo.html', 'demo.css', 'demo.js'];
+  for (const file of files) await cp(path.join(root, file), path.join(destination, file));
   await cp(path.join(root, 'assets'), path.join(destination, 'assets'), { recursive: true });
   await writeFile(path.join(destination, 'site-data.js'), data);
+  const icons = await optimizeSite(root, destination, [...files.filter(file => /\.(?:js|css)$/.test(file)), 'site-data.js']);
   await writeFile(path.join(destination, '.nojekyll'), '');
-  console.log(`Built ${destination} with synchronized releases and manually maintained benchmarks.`);
+  console.log(`Built ${destination}: minified JS/CSS, ${icons.names.length} Lucide icons (${icons.bytes} bytes), synchronized releases and manually maintained benchmarks.`);
 }

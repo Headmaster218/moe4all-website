@@ -1,0 +1,13 @@
+{
+  "name": "moe4all-website",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-site.mjs",
+    "test": "node --test qa/*.test.cjs qa/*.test.mjs"
+  },
+  "devDependencies": {
+    "acorn": "8.15.0",
+    "esbuild": "0.28.1",
+    "lucide": "1.8.0"
+  }
+}

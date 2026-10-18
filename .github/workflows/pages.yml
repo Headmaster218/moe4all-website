@@ -29,8 +29,10 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
+      - name: Install pinned website build tools
+        run: npm ci --ignore-scripts
       - name: Validate releases, cache story and promotional README
-        run: node --test qa/release-selection.test.mjs qa/release-event.test.mjs qa/memory-model.test.cjs qa/readme.test.mjs qa/downloads.test.cjs qa/language.test.cjs qa/analytics.test.cjs qa/benchmark.test.cjs qa/media.test.cjs qa/shared-dialogs.test.cjs
+        run: npm test
       - name: Synchronize product releases
         env:
           GITHUB_TOKEN: ${{ github.token }}
