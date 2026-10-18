@@ -124,7 +124,6 @@
 
   const showDialog = dialog => { closeMenu(); dialog.showModal(); document.body.classList.add("modal-open"); };
   document.querySelector("#benchmark-details").addEventListener("click", () => showDialog(document.querySelector("#benchmark-dialog")));
-  document.querySelectorAll("[data-download]").forEach(button => button.addEventListener("click", () => showDialog(document.querySelector("#download-dialog"))));
   document.querySelectorAll("dialog").forEach(dialog => {
     dialog.querySelector("[data-close-dialog]").addEventListener("click", () => dialog.close());
     dialog.addEventListener("close", () => document.body.classList.remove("modal-open"));

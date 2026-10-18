@@ -20,7 +20,7 @@
   const cacheKey = "moe4all-releases-v2:" + data.site.engineRepository + ":" + data.site.agentRepository;
   const cacheMs = 15 * 60 * 1000;
   const sendReleases = frame => frame.contentWindow?.postMessage({ type: "moe-release-data", releases: data.releases }, "*");
-  function getDownload(kind = "agent", target = platform) {
+  function getDownload(kind = "agent", target = { os: platform.os, arch: "x86_64" }) {
     const releases = data.releases;
     return model.downloadFor(kind === "newestEngine" ? releases.enginePreview || releases.engine : releases[kind], repositories[kind], target);
   }
@@ -100,5 +100,6 @@
     const arch = values.architecture === "arm" ? (values.bitness === "64" ? "arm64" : "unknown") : values.architecture === "x86" ? (values.bitness === "64" ? "x86_64" : "x86") : "unknown";
     platform = { ...platform, arch };
     renderReleases();
+    window.dispatchEvent(new CustomEvent("moe-platform-updated"));
   }).catch(() => {});
 })();

@@ -91,7 +91,10 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
         if (await page.evaluate(() => !window.MOE4ALL_DATA.releases.agent)) assert.equal(await page.locator('[data-agent-download]').first().innerText(), lang === 'en' ? 'Get MoE4All' : '下载 MoE4All');
         await page.locator('details').first().locator('summary').click();
         assert.equal(await page.locator('details').first().getAttribute('open'), '');
-        if (lang === 'en') assert.match(await page.locator('details').first().locator('p').innerText(), /^No\./);
+        if (lang === 'en') {
+          assert.equal(await page.locator('details').first().locator('summary').innerText(), 'Can I use it without knowing how to code?');
+          assert.match(await page.locator('details').first().locator('p').innerText(), /^Yes\./);
+        }
         await page.locator('details').first().locator('summary').click();
         if (width === 1440) await page.locator('#privacy').screenshot({ path: path.join(shots, `privacy-${lang}.png`) });
         await page.evaluate(() => scrollTo(0, 0));
@@ -110,8 +113,9 @@ const sharp = require(process.env.SHARP_MODULE || (process.env.PLAYWRIGHT_MODULE
       }
       if (width <= 768) {
         await page.locator('#menu-toggle').click(); assert.ok(await page.locator('#main-nav').isVisible());
-        await page.locator('#main-nav a[href="#start"]').click();
+        await page.locator('#main-nav [data-contact]').click();
         assert.equal(await page.locator('#menu-toggle').getAttribute('aria-expanded'), 'false');
+        await page.keyboard.press('Escape');
       }
       reports.push({ width, languages: ['zh', 'en'], sharedContent: true, interactions: 'passed' });
     }

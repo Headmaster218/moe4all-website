@@ -75,7 +75,7 @@
         root.classList.toggle("is-paused", paused);
         const icon = paused ? "play" : "pause";
         if (toggle.dataset.icon !== icon) { toggle.innerHTML = `<i data-lucide="${icon}"></i>`; toggle.dataset.icon = icon; window.lucide?.createIcons({ root: toggle }); }
-        toggle.title = en() ? (paused ? "Play cache story" : "Pause cache story") : (paused ? "播放缓存故事" : "暂停缓存故事");
+        toggle.title = en() ? (paused ? "Play cache animation" : "Pause cache animation") : (paused ? "播放缓存故事" : "暂停缓存故事");
         toggle.setAttribute("aria-label", toggle.title); toggle.setAttribute("aria-pressed", String(paused));
       }
       function prepare() {
@@ -188,7 +188,7 @@
           const missing = item.source !== "vram" && ["waiting", "ssd-transfer", "ram-transfer"].includes(stage);
           unit.className = `compute-slot ${missing ? "missing" : stage}`; unit.dataset.expert = String(item.id); unit.dataset.state = stage;
           text(unit.querySelector("strong"), name(item.id));
-          const labels = { waiting: [missing ? "等待补页" : "已命中", missing ? "WAIT FOR FILL" : "CACHE HIT"], "ssd-transfer": ["等 SSD", "WAIT FOR SSD"], "ram-transfer": ["等 RAM", "WAIT FOR RAM"], "gpu-transfer": ["进入 GPU", "GPU LOAD"], compute: ["计算中", "COMPUTING"], done: ["完成", "DONE"] };
+          const labels = { waiting: [missing ? "等待补页" : "已命中", missing ? "FETCH PENDING" : "CACHE HIT"], "ssd-transfer": ["等 SSD", "WAIT FOR SSD"], "ram-transfer": ["等 RAM", "WAIT FOR RAM"], "gpu-transfer": ["进入 GPU", "TO GPU"], compute: ["计算中", "COMPUTING"], done: ["完成", "DONE"] };
           text(unit.querySelector("span"), labels[stage][en() ? 1 : 0]);
           unit.querySelector("b").style.width = `${stage === "done" ? 100 : stage === "compute" ? Math.min(100, (time - item.computeStart) / timings.compute * 100) : 0}%`;
         });

@@ -14,11 +14,11 @@
     "source": { "zh": "和小丽的讨论 · 上周", "en": "Planning with Xiaoli · last week" }
   },
   "future": {
-    "question": { "zh": "每周一上午 9 点，提醒我把会议材料发给小丽。", "en": "Every Monday at 9 am, remind me to send the meeting notes to Xiaoli." },
-    "answer": { "zh": "安排好了。每周一上午 9 点，我会在工作台提醒你把材料发给小丽。", "en": "Scheduled. Every Monday at 9 am, I will remind you in the workspace to send the notes to Xiaoli." }
+    "question": { "zh": "每周一上午 9 点，提醒我把会议材料发给小丽。", "en": "Every Monday at 9 am, remind me to send the meeting materials to Xiaoli." },
+    "answer": { "zh": "安排好了。每周一上午 9 点，我会在工作台提醒你把材料发给小丽。", "en": "Scheduled. Every Monday at 9 am, I will remind you in the workspace to send the materials to Xiaoli." }
   },
   "private": {
-    "question": { "zh": "这份合作协议我不想上传云端，帮我整理一下需要确认的条款。", "en": "I do not want to upload this collaboration agreement. Help me organize the points I need to confirm." },
+    "question": { "zh": "这份合作协议我不想上传云端，帮我整理一下需要确认的条款。", "en": "I do not want to upload this collaboration agreement to the cloud. Help me identify the terms I need to confirm." },
     "answer": { "zh": "可以在本地一起梳理：交付时间、费用结算、修改范围，以及终止合作时的处理方式。", "en": "We can work through it locally: delivery dates, payment terms, revision scope and what happens if the collaboration ends." }
   },
   "memories": [
@@ -28,13 +28,13 @@
     { "category": { "zh": "约定", "en": "Plan" }, "text": { "zh": "周五下午 3 点，与小丽线上讨论读书会筹备。", "en": "Friday at 3 pm: an online planning meeting with Xiaoli." } }
   ],
   "tasks": [
-    { "time": { "zh": "每周一 · 09:00", "en": "Monday · 09:00" }, "text": { "zh": "提醒发送会议材料", "en": "Remind me to send meeting notes" } },
+    { "time": { "zh": "每周一 · 09:00", "en": "Every Monday · 09:00" }, "text": { "zh": "提醒发送会议材料", "en": "Remind me to send meeting materials" } },
     { "time": { "zh": "每天 · 20:00", "en": "Daily · 20:00" }, "text": { "zh": "整理今天的阅读笔记", "en": "Summarize today's reading notes" } },
-    { "time": { "zh": "每周日 · 18:00", "en": "Sunday · 18:00" }, "text": { "zh": "回顾本周读书会计划", "en": "Review this week's club plans" } }
+    { "time": { "zh": "每周日 · 18:00", "en": "Every Sunday · 18:00" }, "text": { "zh": "回顾本周读书会计划", "en": "Review this week's club plans" } }
   ],
   "models": [
-    { "name": "FlashNext-176B", "detail": "4.27 bpw", "type": { "zh": "对话模型", "en": "Conversation" } },
-    { "name": "Qwen3.6-35B", "detail": "APEX I-Balanced", "type": { "zh": "对话模型", "en": "Conversation" } },
+    { "name": "FlashNext-176B", "detail": "4.27 bpw", "type": { "zh": "对话模型", "en": "Chat model" } },
+    { "name": "Qwen3.6-35B", "detail": "APEX I-Balanced", "type": { "zh": "对话模型", "en": "Chat model" } },
     { "name": "Qwen3-Embedding-0.6B", "detail": "Q8_0", "type": { "zh": "记忆检索", "en": "Memory retrieval" } }
   ]
 }

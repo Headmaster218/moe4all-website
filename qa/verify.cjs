@@ -125,7 +125,7 @@ const assert = require('node:assert/strict');
       await page.locator('.hero [data-download]').click();
       assert.equal(await page.locator('#download-dialog').isVisible(), true);
       const expectedDownloads = await page.evaluate(() => 3 + Number(Boolean(window.MOE4ALL_DATA.releases.enginePreview)));
-      assert.equal(await page.locator('.download-options>a:visible').count(), expectedDownloads);
+      assert.equal(await page.locator('#download-dialog .site-product').count(), expectedDownloads);
       if (viewport.width === 390) await page.screenshot({ path: path.join(shots, '390-download.png') });
       await page.keyboard.press('Escape');
       assert.equal(await page.locator('#download-dialog').isVisible(), false);

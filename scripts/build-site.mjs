@@ -25,7 +25,7 @@ if (process.argv.includes('--preview')) {
 } else {
   const destination = path.resolve(process.env.MOE4ALL_SITE_OUTPUT || path.join(root, '_site'));
   await mkdir(destination, { recursive: true });
-  for (const file of ['index.html', 'technical.html', 'styles.css', 'app.js', 'memory-model.js', 'memory.js', 'agent-showcase.css', 'agent-showcase.js', 'release-model.js', 'site-ui.js', 'analytics.js', 'everyday.html', 'everyday.css', 'everyday.js', 'demo.html', 'demo.css', 'demo.js']) await cp(path.join(root, file), path.join(destination, file));
+  for (const file of ['index.html', 'technical.html', 'styles.css', 'app.js', 'memory-model.js', 'memory.js', 'agent-showcase.css', 'agent-showcase.js', 'release-model.js', 'site-ui.js', 'site-dialogs.js', 'site-dialogs.css', 'analytics.js', 'everyday.html', 'everyday.css', 'everyday.js', 'demo.html', 'demo.css', 'demo.js']) await cp(path.join(root, file), path.join(destination, file));
   await cp(path.join(root, 'assets'), path.join(destination, 'assets'), { recursive: true });
   await writeFile(path.join(destination, 'site-data.js'), data);
   await writeFile(path.join(destination, '.nojekyll'), '');

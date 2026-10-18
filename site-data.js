@@ -7,6 +7,19 @@ window.MOE4ALL_DATA = {
     "brand": "MoE4All",
     "fallbackVersion": "1.0.0",
     "carouselIntervalMs": 6000,
+    "pluginInstall": {
+      "repository": "Headmaster218/dsh-llm-moe4all",
+      "catalog": "https://awesome-dsh-plugin.com/p/Headmaster218/dsh-llm-moe4all/",
+      "community": "https://www.dsh.so/artifact/dsh-llm-moe4all/"
+    },
+    "contact": {
+      "wechatImage": "assets/wechat-contact.png",
+      "supportImage": "assets/wechat-support.png",
+      "bilibili": "https://space.bilibili.com/437077277",
+      "douyinSearch": "https://www.douyin.com/search/Heamdaster218?type=user",
+      "douyinHandle": "Heamdaster218",
+      "buyMeACoffee": "https://buymeacoffee.com/headmaster218"
+    },
     "heroScreen": {
       "width": 960,
       "height": 620,
@@ -35,31 +48,59 @@ window.MOE4ALL_DATA = {
   "releases": {
     "schema": 1,
     "engine": {
-      "version": "1.0.0",
-      "tag": "release-1.0.0",
-      "url": "https://github.com/Headmaster218/MoE4All/releases/tag/release-1.0.0",
+      "version": "1.0.3",
+      "tag": "release-1.0.3",
+      "url": "https://github.com/Headmaster218/MoE4All/releases/tag/release-1.0.3",
       "prerelease": false,
-      "publishedAt": "2026-10-14T19:06:04Z",
+      "publishedAt": "2026-10-16T14:37:03Z",
       "assets": [
         {
           "name": "image-codec-sources.tar.gz",
-          "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.0/image-codec-sources.tar.gz",
-          "size": 4524569
+          "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.3/image-codec-sources.tar.gz",
+          "size": 4524352
         },
         {
-          "name": "MoE4All-Linux-x86_64-v1.0.0.tar.gz",
-          "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.0/MoE4All-Linux-x86_64-v1.0.0.tar.gz",
-          "size": 51308893
+          "name": "MoE4All-Linux-x86_64-v1.0.3.tar.gz",
+          "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.3/MoE4All-Linux-x86_64-v1.0.3.tar.gz",
+          "size": 51304508
         },
         {
-          "name": "MoE4All-Windows-x86_64-v1.0.0.zip",
-          "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.0/MoE4All-Windows-x86_64-v1.0.0.zip",
-          "size": 17535477
+          "name": "MoE4All-macOS-arm64-v1.0.3.tar.gz",
+          "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.3/MoE4All-macOS-arm64-v1.0.3.tar.gz",
+          "size": 16678209
+        },
+        {
+          "name": "MoE4All-Windows-x86_64-v1.0.3.zip",
+          "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.3/MoE4All-Windows-x86_64-v1.0.3.zip",
+          "size": 17555103
+        },
+        {
+          "name": "release-build-manifest.json",
+          "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.3/release-build-manifest.json",
+          "size": 4889
+        },
+        {
+          "name": "SHA256SUMS",
+          "url": "https://github.com/Headmaster218/MoE4All/releases/download/release-1.0.3/SHA256SUMS",
+          "size": 716
         }
       ]
     },
     "enginePreview": null,
-    "agent": null
+    "agent": {
+      "version": "0.2.1",
+      "tag": "release-0.2.1",
+      "url": "https://github.com/Headmaster218/MoE4All-Agent/releases/tag/release-0.2.1",
+      "prerelease": false,
+      "publishedAt": "2026-10-16T09:20:52Z",
+      "assets": [
+        {
+          "name": "MoE4All-Agent-Windows-x64-v0.2.1.zip",
+          "url": "https://github.com/Headmaster218/MoE4All-Agent/releases/download/release-0.2.1/MoE4All-Agent-Windows-x64-v0.2.1.zip",
+          "size": 111868590
+        }
+      ]
+    }
   },
   "benchmarks": {
     "schema": 1,
@@ -277,17 +318,17 @@ window.MOE4ALL_DATA = {
     "future": {
       "question": {
         "zh": "每周一上午 9 点，提醒我把会议材料发给小丽。",
-        "en": "Every Monday at 9 am, remind me to send the meeting notes to Xiaoli."
+        "en": "Every Monday at 9 am, remind me to send the meeting materials to Xiaoli."
       },
       "answer": {
         "zh": "安排好了。每周一上午 9 点，我会在工作台提醒你把材料发给小丽。",
-        "en": "Scheduled. Every Monday at 9 am, I will remind you in the workspace to send the notes to Xiaoli."
+        "en": "Scheduled. Every Monday at 9 am, I will remind you in the workspace to send the materials to Xiaoli."
       }
     },
     "private": {
       "question": {
         "zh": "这份合作协议我不想上传云端，帮我整理一下需要确认的条款。",
-        "en": "I do not want to upload this collaboration agreement. Help me organize the points I need to confirm."
+        "en": "I do not want to upload this collaboration agreement to the cloud. Help me identify the terms I need to confirm."
       },
       "answer": {
         "zh": "可以在本地一起梳理：交付时间、费用结算、修改范围，以及终止合作时的处理方式。",
@@ -340,11 +381,11 @@ window.MOE4ALL_DATA = {
       {
         "time": {
           "zh": "每周一 · 09:00",
-          "en": "Monday · 09:00"
+          "en": "Every Monday · 09:00"
         },
         "text": {
           "zh": "提醒发送会议材料",
-          "en": "Remind me to send meeting notes"
+          "en": "Remind me to send meeting materials"
         }
       },
       {
@@ -360,7 +401,7 @@ window.MOE4ALL_DATA = {
       {
         "time": {
           "zh": "每周日 · 18:00",
-          "en": "Sunday · 18:00"
+          "en": "Every Sunday · 18:00"
         },
         "text": {
           "zh": "回顾本周读书会计划",
@@ -374,7 +415,7 @@ window.MOE4ALL_DATA = {
         "detail": "4.27 bpw",
         "type": {
           "zh": "对话模型",
-          "en": "Conversation"
+          "en": "Chat model"
         }
       },
       {
@@ -382,7 +423,7 @@ window.MOE4ALL_DATA = {
         "detail": "APEX I-Balanced",
         "type": {
           "zh": "对话模型",
-          "en": "Conversation"
+          "en": "Chat model"
         }
       },
       {

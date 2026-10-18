@@ -6,5 +6,18 @@
   "brand": "MoE4All",
   "fallbackVersion": "1.0.0",
   "carouselIntervalMs": 6000,
+  "pluginInstall": {
+    "repository": "Headmaster218/dsh-llm-moe4all",
+    "catalog": "https://awesome-dsh-plugin.com/p/Headmaster218/dsh-llm-moe4all/",
+    "community": "https://www.dsh.so/artifact/dsh-llm-moe4all/"
+  },
+  "contact": {
+    "wechatImage": "assets/wechat-contact.png",
+    "supportImage": "assets/wechat-support.png",
+    "bilibili": "https://space.bilibili.com/437077277",
+    "douyinSearch": "https://www.douyin.com/search/Heamdaster218?type=user",
+    "douyinHandle": "Heamdaster218",
+    "buyMeACoffee": "https://buymeacoffee.com/headmaster218"
+  },
   "heroScreen": { "width": 960, "height": 620, "imageWidth": 1860, "imageHeight": 846, "corners": [[952, 107], [1706, 92], [1706, 596], [952, 573]] }
 }
