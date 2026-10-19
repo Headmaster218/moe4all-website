@@ -1,0 +1,56 @@
+name: Refresh compact leaderboard snapshot
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [benchmark-data]
+  schedule:
+    - cron: '7 */6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: compact-leaderboard
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/checkout@v7
+        with:
+          repository: Headmaster218/MoE4All
+          ref: main
+          path: data-source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - name: Independently verify originals and generate the compact snapshot
+        run: >-
+          node scripts/build-leaderboard.mjs
+          --source "$GITHUB_WORKSPACE/data-source"
+          --output "$RUNNER_TEMP/leaderboard"
+          --snapshot "$GITHUB_WORKSPACE/content/leaderboard/snapshot.json"
+          --python python3
+          --decoder "$GITHUB_WORKSPACE/data-source/scripts/moe4all_submission.py"
+      - run: npm test
+      - name: Commit the generated snapshot and request website deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          git add -- content/leaderboard/snapshot.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'data(leaderboard): refresh compact benchmark snapshot'
+          git push origin HEAD:main
+          gh api --method POST "repos/$GITHUB_REPOSITORY/dispatches" -f event_type=leaderboard-data-ready

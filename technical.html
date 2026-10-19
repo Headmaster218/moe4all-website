@@ -31,6 +31,7 @@
         <a href="#agent">Agent</a>
         <a href="#ecosystem" data-en="Plugins">插件</a>
         <a href="#audio" data-en="Audio">语音</a>
+        <a href="community/" data-en="Benchmarks">社区实测</a>
         <a href="index.html" data-en="Home">回到首页</a>
         <button type="button" data-contact data-en="Contact">联系我们</button>
         <button type="button" data-support data-en="Support us">支持项目</button>
@@ -99,6 +100,7 @@
           <div class="benchmark-controls"><div class="segmented model-selector" aria-label="测试模型"><button class="active" data-model="qwen35" aria-pressed="true"><span>Qwen3.6-35B</span><span>I-Balanced · ≈5.91 bpw</span></button><button data-model="flashnext" aria-pressed="false"><span>FlashNext-176B</span><span>4.27 bpw</span></button></div><span data-en="MEAN AGGREGATE DECODE / tok/s">并发总 Decode 平均 / tok/s</span></div>
           <div class="benchmark-body"><div class="benchmark-machine"><i data-lucide="cpu"></i><div><strong>RX 7900 XTX</strong><span data-en="Budgets: 24 GiB VRAM · 48 GiB RAM">预算：24 GiB VRAM · 48 GiB RAM</span><small>Windows · MTP OFF · Q8 KV</small></div></div><div class="benchmark-chart" aria-live="polite"><div class="benchmark-row"><span>×1</span><div class="bar-track"><div class="bar bar-mint" data-decode-bar="0"></div></div><strong data-decode-speed="0">120.98 <small>tok/s</small></strong></div><div class="benchmark-row"><span>×2</span><div class="bar-track"><div class="bar bar-mint" data-decode-bar="1"></div></div><strong data-decode-speed="1">164.64 <small>tok/s</small></strong></div><div class="benchmark-row"><span>×3</span><div class="bar-track"><div class="bar bar-mint" data-decode-bar="2"></div></div><strong data-decode-speed="2">201.28 <small>tok/s</small></strong></div></div><div class="prefill-result"><span>PREFILL</span><strong id="prefill-speed">3604.71</strong><small>tok/s</small><span data-en="Single cold request">单路冷请求</span></div></div>
           <div class="benchmark-note"><p id="benchmark-note">×N 为并发会话数；Decode 预热后三轮平均，Prefill 为无缓存冷请求。</p><button class="benchmark-details-link" id="benchmark-details"><span data-en="All results & conditions">完整结果与条件</span><i data-lucide="arrow-up-right"></i></button></div>
+          <div class="community-benchmark-links"><a class="button button-small button-light" href="community/"><i data-lucide="blocks"></i><span data-en="Community leaderboard">社区性能榜</span></a><a class="benchmark-details-link" href="community/upload.html"><span data-en="Submit a benchmark">提交我的实测</span><i data-lucide="arrow-up-right"></i></a></div>
         </div>
       </div>
     </section>

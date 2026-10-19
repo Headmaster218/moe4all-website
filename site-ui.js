@@ -66,7 +66,7 @@
     return true;
   }
   async function refreshReleases() {
-    if (!/^https?:$/.test(location.protocol)) return false;
+    if (window.MOE4ALL_COMMUNITY_CONFIG?.mode === 'local' || !/^https?:$/.test(location.protocol)) return false;
     try {
       const saved = JSON.parse(localStorage.getItem(cacheKey));
       if (saved && Date.now() >= saved.time && Date.now() - saved.time < cacheMs && applyReleases(saved.releases, true)) return true;

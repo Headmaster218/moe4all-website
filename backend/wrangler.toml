@@ -1,0 +1,23 @@
+name = "moe4all-submissions"
+main = "worker.mjs"
+compatibility_date = "2026-10-19"
+workers_dev = false
+
+# Local-only delivery: replace placeholders and configure secrets before any deployment.
+[[d1_databases]]
+binding = "DB"
+database_name = "moe4all-submissions"
+database_id = "f72ba16f-d105-4563-8bb2-f240abb0e247"
+migrations_dir = "migrations"
+
+[vars]
+SITE_ORIGIN = "https://moe4all.com"
+GITHUB_REPOSITORY = "Headmaster218/MoE4All"
+REVIEW_MODE = "github_pr"
+TURNSTILE_SITE_KEY = "0x4AAAAAAFbE6-m2JLtQ7nlA"
+
+# Required secrets / environment configuration:
+# RATE_LIMIT_SALT, TURNSTILE_SECRET, TURNSTILE_SITE_KEY,
+# GITHUB_TOKEN, GIT_IMPORT_TOKEN.
+# Access variables are not required: all reviews happen in GitHub PRs.
+# No scheduled cloud runs or custom routes are enabled by this local deliverable.

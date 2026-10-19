@@ -1,0 +1,1 @@
+window.MOE4ALL_COMMUNITY_CONFIG = { apiBase: 'https://api.moe4all.com/v1', mode: 'production', reviewMode: 'github_pr', repository: 'Headmaster218/MoE4All', leaderboardManifest: 'data/manifest.json' };

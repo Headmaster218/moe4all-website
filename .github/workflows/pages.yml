@@ -5,7 +5,7 @@ on:
     branches: [main]
   workflow_dispatch:
   repository_dispatch:
-    types: [engine-release, agent-release, product-release]
+    types: [engine-release, agent-release, product-release, leaderboard-data-ready]
   schedule:
     - cron: '17 */6 * * *'
 
@@ -36,7 +36,7 @@ jobs:
       - name: Synchronize product releases
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          RELEASE_EVENT_PATH: ${{ github.event_name == 'repository_dispatch' && github.event_path || '' }}
+          RELEASE_EVENT_PATH: ${{ github.event_name == 'repository_dispatch' && contains(fromJSON('["engine-release","agent-release","product-release"]'), github.event.action) && github.event_path || '' }}
         run: node scripts/sync-releases.mjs
       - uses: actions/configure-pages@v5
       - name: Prepare static files

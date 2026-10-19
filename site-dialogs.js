@@ -2,6 +2,8 @@
   "use strict";
   const { site } = window.MOE4ALL_DATA;
   const api = window.MoeSite;
+  const assetRoot = new URL('.', document.currentScript.src);
+  const assetURL = value => new URL(value, assetRoot).href;
   const icon = name => `<i data-lucide="${name}"></i>`;
   const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const english = () => document.documentElement.lang === "en";
@@ -57,11 +59,11 @@
   }
   function renderCommunity(kind) {
     const contact = kind === "contact", d = dialogs[kind], c = site.contact;
-    d.innerHTML = `${header(kind, contact ? "GET IN TOUCH" : "SUPPORT US", contact ? t("联系 MoE4All", "Get in touch") : t("支持 MoE4All", "Support us"))}<div class="site-community"><div class="site-qr-column"><div class="site-qr-frame" aria-busy="true"><img width="480" height="${contact ? 685 : 519}" alt="${contact ? t("MoE4All 微信联系二维码", "MoE4All WeChat contact QR code") : t("MoE4All 微信支持二维码", "MoE4All WeChat donation QR code")}" data-qr-image><span class="site-qr-error" hidden>${t("二维码暂时无法加载", "QR code unavailable")}</span></div><a class="site-save-qr" href="${escape(contact ? c.wechatImage : c.supportImage)}" download="${contact ? "MoE4All-WeChat.webp" : "MoE4All-Support.webp"}">${icon("download")}<span>${t("保存二维码", "Save QR code")}</span></a></div><div class="site-community-copy"><h3>${contact ? t("微信联系", "WeChat") : t("微信支持", "Donate via WeChat")}</h3><p>${contact ? t("交流使用体验，也欢迎分享你的想法。", "Share your experience, questions and ideas.") : t("感谢你支持 MoE4All 继续生长。", "Thank you for helping MoE4All grow.")}</p><div class="site-social-links">${contact ? link(c.bilibili, `${icon("video")}<span><strong>${t("哔哩哔哩", "Bilibili")}</strong><small>headmaster218</small></span>${icon("arrow-up-right")}`) + link(c.douyinSearch, `${icon("music-2")}<span><strong>${t("抖音", "Douyin")}</strong><small>${escape(c.douyinHandle)} · ${t("搜索账号", "Find account")}</small></span>${icon("arrow-up-right")}`) : link(c.buyMeACoffee, `${icon("coffee")}<span><strong>Buy Me a Coffee</strong><small>headmaster218</small></span>${icon("arrow-up-right")}`, "site-coffee-link")}</div></div></div>`;
+    d.innerHTML = `${header(kind, contact ? "GET IN TOUCH" : "SUPPORT US", contact ? t("联系 MoE4All", "Get in touch") : t("支持 MoE4All", "Support us"))}<div class="site-community"><div class="site-qr-column"><div class="site-qr-frame" aria-busy="true"><img width="480" height="${contact ? 685 : 519}" alt="${contact ? t("MoE4All 微信联系二维码", "MoE4All WeChat contact QR code") : t("MoE4All 微信支持二维码", "MoE4All WeChat donation QR code")}" data-qr-image><span class="site-qr-error" hidden>${t("二维码暂时无法加载", "QR code unavailable")}</span></div><a class="site-save-qr" href="${escape(assetURL(contact ? c.wechatImage : c.supportImage))}" download="${contact ? "MoE4All-WeChat.webp" : "MoE4All-Support.webp"}">${icon("download")}<span>${t("保存二维码", "Save QR code")}</span></a></div><div class="site-community-copy"><h3>${contact ? t("微信联系", "WeChat") : t("微信支持", "Donate via WeChat")}</h3><p>${contact ? t("交流使用体验，也欢迎分享你的想法。", "Share your experience, questions and ideas.") : t("感谢你支持 MoE4All 继续生长。", "Thank you for helping MoE4All grow.")}</p><div class="site-social-links">${contact ? link(c.bilibili, `${icon("video")}<span><strong>${t("哔哩哔哩", "Bilibili")}</strong><small>headmaster218</small></span>${icon("arrow-up-right")}`) + link(c.douyinSearch, `${icon("music-2")}<span><strong>${t("抖音", "Douyin")}</strong><small>${escape(c.douyinHandle)} · ${t("搜索账号", "Find account")}</small></span>${icon("arrow-up-right")}`) : link(c.buyMeACoffee, `${icon("coffee")}<span><strong>Buy Me a Coffee</strong><small>headmaster218</small></span>${icon("arrow-up-right")}`, "site-coffee-link")}</div></div></div>`;
     const image = d.querySelector("[data-qr-image]"), frame = image.parentElement;
     image.onload = () => frame.setAttribute("aria-busy", "false");
     image.onerror = () => { frame.setAttribute("aria-busy", "false"); image.hidden = true; frame.querySelector(".site-qr-error").hidden = false; };
-    image.src = contact ? c.wechatImage : c.supportImage;
+    image.src = assetURL(contact ? c.wechatImage : c.supportImage);
     window.lucide?.createIcons({ root: d });
   }
   function open(kind) {

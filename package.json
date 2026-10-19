@@ -3,11 +3,16 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build-site.mjs",
-    "test": "node --test qa/*.test.cjs qa/*.test.mjs"
+    "test": "node --test qa/*.test.cjs qa/*.test.mjs",
+    "community:dev": "node backend/local-server.mjs",
+    "community:test": "node --test qa/community.test.mjs",
+    "community:codec": "node scripts/build-submission-codec.mjs",
+    "leaderboard:build": "node scripts/build-leaderboard.mjs"
   },
   "devDependencies": {
     "acorn": "8.15.0",
     "esbuild": "0.28.1",
-    "lucide": "1.8.0"
+    "lucide": "1.8.0",
+    "pako": "3.0.2"
   }
 }
