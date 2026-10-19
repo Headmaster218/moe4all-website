@@ -2,6 +2,7 @@ import { MAX_ARMOR_BYTES } from './submission-limits.mjs';
 import { filterRows, filterValues, comparisonError, csv, strategyNames, strategyOf, capacityGiB, rangeBounds } from './ui-model.mjs';
 import { loadLeaderboard } from './leaderboard-loader.mjs';
 import { assembleIndex, indexRows, provenanceLinks } from './leaderboard-model.mjs';
+import { receiptHandoff, receiptCredential, verifiedReceipt } from './receipt-model.mjs';
 
 const config = window.MOE4ALL_COMMUNITY_CONFIG || {}, $ = selector => document.querySelector(selector);
 const publicPr = config.reviewMode === 'github_pr';
@@ -29,9 +30,12 @@ const blankFilters = () => ({ model: [], gpu: [], context: [], contextMode: 'ran
 let receipts = [];
 try { receipts = JSON.parse(localStorage.getItem(storageKey) || '[]').filter(r => r && typeof r.receipt_id === 'string' && typeof r.receipt_token === 'string').slice(0, 100); } catch {}
 const fragment = new URLSearchParams(location.hash.slice(1));
+let receiptTransfer = null, receiptTransferError = '';
+try { receiptTransfer = receiptHandoff(location.hash); } catch (error) { receiptTransferError = error.message; }
 let confirmation = fragment.has('session') && fragment.has('authorize') ? { id: fragment.get('session'), token: fragment.get('authorize') } : null;
-if (confirmation) history.replaceState(null, '', location.pathname + location.search);
-const state = { page: confirmation ? 'confirmation' : location.hash === '#receipts' ? 'receipts' : document.body.dataset.page, index: null, dataInfo: null, rows: [], bounds: null, filters: blankFilters(), filtersOpen: true, metric: 'decode', selected: '', compare: [], pageNumber: 1, uploadKind: new URLSearchParams(location.search).get('kind') === 'error' ? 'error' : 'benchmark', file: null, decoded: null, fileError: '', header: null, processing: false, uploading: false, uploaded: null, uploadSession: null, adminTab: 'benchmark', overview: null, confirmation: null, confirmDone: null };
+if (receiptTransfer || receiptTransferError) history.replaceState(null, '', location.pathname + location.search + '#receipts');
+else if (confirmation) history.replaceState(null, '', location.pathname + location.search);
+const state = { page: receiptTransfer || receiptTransferError ? 'receipts' : confirmation ? 'confirmation' : location.hash === '#receipts' ? 'receipts' : document.body.dataset.page, index: null, dataInfo: null, rows: [], bounds: null, filters: blankFilters(), filtersOpen: true, metric: 'decode', selected: '', compare: [], pageNumber: 1, uploadKind: new URLSearchParams(location.search).get('kind') === 'error' ? 'error' : 'benchmark', file: null, decoded: null, fileError: '', header: null, processing: false, uploading: false, uploaded: null, uploadSession: null, adminTab: 'benchmark', overview: null, confirmation: null, confirmDone: null };
 let toastTimer, receiptTimer, receiptCursor = 0, fileSequence = 0;
 function icons() { window.lucide?.createIcons(); }
 function toast(text) { clearTimeout(toastTimer); $('#toast').textContent = text; $('#toast').classList.add('visible'); toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 4200); }
@@ -215,8 +219,21 @@ function receiptResult(value) {
 }
 function renderReceipts() {
   scheduleReceiptRefresh();
-  $('#main').innerHTML = heading('我的回执', 'PRIVATE RECEIPTS', '凭证仅保存在当前浏览器；公开报告在 GitHub 查看。', button('refresh-receipts', '刷新状态', 'refresh-cw')) + (receipts.length ? receipts.map(r => `<div class="receipt-row">${icon(r.kind === 'error' ? 'message-square' : 'cpu')}<div><strong>${escape(r.report_id)}</strong><small>${escape(r.receipt_id)}<br>${escape(r.received_at || '')}${r.query_failed ? ' · 查询失败，请稍后刷新' : r.status === 'delivery_failed' ? ' · 云端正文已清理，请从向导重新导出报告' : ''}${r.archive_mode === 'local' ? ' · 本地预览，未创建 GitHub PR' : ''}</small></div>${r.public_url ? '<a class="text-link" href="' + escape(r.public_url) + '" target="_blank" rel="noopener noreferrer">GitHub PR / 原件</a>' : ''}${stateTag(r.status)}<div class="actions">${iconButton('download-receipt', 'download', '下载私密回执', `data-id="${escape(r.receipt_id)}"`)}${iconButton('forget-receipt', 'x', '从此浏览器移除回执', `data-id="${escape(r.receipt_id)}"`)}</div></div>`).join('') : empty('还没有保存的回执', '提交一份报告后，在这里查看处理进展。'));
+  $('#main').innerHTML = heading('我的回执', 'PRIVATE RECEIPTS', '凭证仅保存在当前浏览器；公开报告在 GitHub 查看。', button('import-receipt', '导入私密回执', 'folder-open') + button('refresh-receipts', '刷新状态', 'refresh-cw')) + '<input class="file-input" type="file" id="receipt-file" accept=".json" aria-label="导入私密回执文件">' + (receipts.length ? receipts.map(r => `<div class="receipt-row">${icon(r.kind === 'error' ? 'message-square' : 'cpu')}<div><strong>${escape(r.report_id)}</strong><small>${escape(r.receipt_id)}<br>${escape(r.received_at || '')}${r.query_failed ? ' · 查询失败，请稍后刷新' : r.status === 'delivery_failed' ? ' · 云端正文已清理，请从向导重新导出报告' : ''}${r.archive_mode === 'local' ? ' · 本地预览，未创建 GitHub PR' : ''}</small></div>${r.public_url ? '<a class="text-link" href="' + escape(r.public_url) + '" target="_blank" rel="noopener noreferrer">GitHub PR / 原件</a>' : ''}${stateTag(r.status)}<div class="actions">${iconButton('download-receipt', 'download', '下载私密回执', `data-id="${escape(r.receipt_id)}"`)}${iconButton('forget-receipt', 'x', '从此浏览器移除回执', `data-id="${escape(r.receipt_id)}"`)}</div></div>`).join('') : empty('还没有保存的回执', '提交一份报告后，在这里查看处理进展。'));
   icons();
+}
+async function importReceipt(credential) {
+  const value = verifiedReceipt(await api(`/receipts/${credential.receipt_id}`, { headers: { Authorization: `Bearer ${credential.receipt_token}` } }), credential, config.repository || 'Headmaster218/MoE4All');
+  receipts = [value, ...receipts.filter(r => r.receipt_id !== value.receipt_id)].slice(0, 100);
+  persistReceipts(); state.page = 'receipts'; renderReceipts();
+}
+async function readReceiptFile(file) {
+  if (!file) return;
+  try {
+    if (file.size > 8192) throw new Error('私密回执文件超过 8 KiB。');
+    await importReceipt(receiptCredential(JSON.parse(await file.text()), config.apiBase));
+    toast('已导入并查询回执。');
+  } catch (error) { toast(error.message); }
 }
 async function loadConfirmation() {
   $('#main').innerHTML = '<div class="loading">正在读取本次上传信息…</div>';
@@ -324,6 +341,7 @@ async function sendFile() {
 }
 
 document.addEventListener('change', event => {
+  if (event.target.id === 'receipt-file') { readReceiptFile(event.target.files[0]); return; }
   if (event.target.matches('input[data-slider]')) {
     const { key, min, max } = readSlider(event.target), bound = event.target.dataset.bound;
     state.filters[key + 'Min'] = min; state.filters[key + 'Max'] = max; state.filters[key] = [];
@@ -377,6 +395,7 @@ document.addEventListener('click', async event => {
     if (action === 'kind') { if (state.uploading) return; state.uploadKind = target.dataset.kind; state.decoded = null; state.file = null; state.header = null; state.fileError = ''; fileSequence++; renderUpload(); }
     if (action === 'clear-file' || action === 'new-upload') { fileSequence++; Object.assign(state, { file: null, decoded: null, header: null, fileError: '', uploaded: null, processing: false, uploadSession: null }); renderUpload(); }
     if (action === 'upload') await sendFile();
+    if (action === 'import-receipt') $('#receipt-file').click();
     if (action === 'download-receipt') { const r = receipts.find(r => r.receipt_id === id); if (r) download(r.receipt_id + '.private-receipt.json', JSON.stringify(r, null, 2)); }
     if (action === 'forget-receipt') { receipts = receipts.filter(r => r.receipt_id !== id); persistReceipts(); renderReceipts(); toast('已移除本机查询凭证；云端报告未删除'); }
     if (action === 'refresh-receipts') { target.disabled = true; for (const r of receipts.slice(0, 20)) { try { Object.assign(r, await api(`/receipts/${r.receipt_id}`, { headers: { Authorization: `Bearer ${r.receipt_token}` } }), { query_failed: false }); } catch { r.query_failed = true; } } persistReceipts(); renderReceipts(); }
@@ -397,6 +416,14 @@ document.addEventListener('click', async event => {
 });
 window.addEventListener('hashchange', () => {
   const incoming = new URLSearchParams(location.hash.slice(1));
+  if (incoming.has('receipt')) {
+    try {
+      const credential = receiptHandoff(location.hash);
+      history.replaceState(null, '', location.pathname + location.search + '#receipts');
+      state.page = 'receipts'; shell(); renderReceipts(); importReceipt(credential).catch(error => toast(error.message));
+    } catch (error) { history.replaceState(null, '', location.pathname + location.search + '#receipts'); toast(error.message); }
+    return;
+  }
   if (incoming.has('session') && incoming.has('authorize')) {
     confirmation = { id: incoming.get('session'), token: incoming.get('authorize') };
     history.replaceState(null, '', location.pathname + location.search);
@@ -406,7 +433,11 @@ window.addEventListener('hashchange', () => {
 shell();
 if (state.page === 'confirmation') await loadConfirmation();
 else if (state.page === 'upload') renderUpload();
-else if (state.page === 'receipts') renderReceipts();
+else if (state.page === 'receipts') {
+  renderReceipts();
+  if (receiptTransfer) { try { await importReceipt(receiptTransfer); } catch (error) { toast(error.message + '；可导入本机保存的私密回执。'); } finally { receiptTransfer = null; } }
+  if (receiptTransferError) toast(receiptTransferError);
+}
 else if (state.page === 'admin') await loadAdmin();
 else {
   $('#main').innerHTML = '<div class="loading">读取社区实测…</div>';

@@ -162,6 +162,12 @@ Accept: application/json
 
 回执还包含 `failure_code`、`body_retained`。同 ID 重传只返回原回执，不重复计数或重启失败期限；重新尝试已终止的报告须重新导出。客户端必须读取状态，不能把 HTTP 200 等同于 PR 已建立。
 
+### 浏览器回执交接
+
+CMD 不实现查询界面，保存私密回执后打开 `https://moe4all.com/community/index.html#receipt=<receipt_id>&token=<receipt_token>`。fragment 不进入 HTTP 请求；网页读取后立即改为 `#receipts`，使用本站已配置的 API 查询并复核身份，成功后才保存在浏览器。
+
+网页也接受主动选择的 `.private-receipt.json`（最大 8 KiB），用于浏览器更换或自动打开失败后的恢复。文件中的 `api_base` 如与当前服务不一致则拒绝，绝不按导入文件指定的地址发送凭证。不要将完整交接 URL 写入普通日志或 Git；Git 直提 PR 不需要 Cloudflare 回执。
+
 ## 6. GitHub 转发
 
 Bot 为每份报告创建独立分支和 PR：

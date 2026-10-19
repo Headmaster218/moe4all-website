@@ -78,7 +78,7 @@ CMD / 网页 -> Cloudflare -> Git PR --+                      |
 - 每 6 小时定时刷新，用于补漏；定时事件可能延迟，不是实时保证。
 - `repository_dispatch: benchmark-data`，供数据仓库在受信 main 校验成功后通知。
 
-引擎侧接入模板为 `integrations/notify-benchmark-step.yml`。本轮不修改引擎工作区，模板尚未代为安装；未接入时仍可手动或定时刷新。通知凭证只放 Actions secrets，不放网页。
+默认使用每 6 小时定时或手动刷新，**不要求引擎在每次合入后通知**。浏览器取得最新已部署的精简数据库，不代表实时扫描 Git。既有 `benchmark-data` dispatch 与 `integrations/notify-benchmark-step.yml` 仅作可选兼容接口，本次不安装引擎通知，也不新增通知凭证。
 
 生成成功且快照有变化时，CI 只暂存 `content/leaderboard/snapshot.json`，普通提交并推送网站 main；不 force push。需要仓库允许工作流写入，若 main 保护策略阻止 bot 直接提交，应改成快照 PR 后再合并，不绕过保护。
 

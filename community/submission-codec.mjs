@@ -6,6 +6,7 @@ export const ARMOR_VERSION = 'MOE4ALL-SUBMISSION/1';
 const BEGIN = '-----BEGIN MOE4ALL PAYLOAD-----';
 const END = '-----END MOE4ALL PAYLOAD-----';
 const encoder = new TextEncoder();
+const trimWhitespace = value => value.replace(/^[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+|[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+$/gu, '');
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const number = value => typeof value === 'number' && Number.isFinite(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
@@ -35,6 +36,7 @@ export function parseStrictJson(text) {
       while (/\s/.test(text[next] || '') && next < text.length) next++;
       if (text[next] === ':') {
         const key = JSON.parse(text.slice(start, i + 1)), keys = stack.at(-1);
+        if ([...key].some(ch => ch.codePointAt(0) >= 0xd800 && ch.codePointAt(0) <= 0xdfff)) fail('invalid_json', 'JSON 字段名包含未配对的代理字符');
         if (!keys || keys.has(key)) fail('invalid_json', 'JSON 包含重复字段');
         if (['__proto__', 'constructor', 'prototype'].includes(key)) fail('invalid_json', 'JSON 包含保留字段');
         keys.add(key);
@@ -44,6 +46,7 @@ export function parseStrictJson(text) {
   const visit = (item, depth) => {
     if (depth > 48) fail('schema_invalid', 'JSON 嵌套过深');
     if (typeof item === 'number' && (!Number.isFinite(item) || (Number.isInteger(item) && !Number.isSafeInteger(item)))) fail('schema_invalid', 'JSON 数值超出安全范围');
+    if (typeof item === 'string' && [...item].some(ch => ch.codePointAt(0) >= 0xd800 && ch.codePointAt(0) <= 0xdfff)) fail('invalid_json', 'JSON 文本包含未配对的代理字符');
     if (item && typeof item === 'object') for (const child of Object.values(item)) visit(child, depth + 1);
   };
   visit(value, 0);
@@ -70,11 +73,11 @@ export function oneLine(value, max) {
   for (let ch of String(value)) {
     const n = ch.codePointAt(0);
     if (n <= 31 || (n >= 127 && n <= 159)) ch = ' ';
-    if (/\s/u.test(ch)) { if (previousSpace) continue; previousSpace = true; out += ' '; }
+    if (/[\t\n\v\f\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/u.test(ch)) { if (previousSpace) continue; previousSpace = true; out += ' '; }
     else { previousSpace = false; out += ch; }
     if (++count >= max) { out += '...'; break; }
   }
-  return out.trim();
+  return trimWhitespace(out);
 }
 export function generatedSummary(kind, p) {
   const gib = (n, unknown) => integer(n) ? `${fixed2(n / 1073741824)} GiB` : unknown;
@@ -106,14 +109,15 @@ export function inspectHeaders(input) {
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
   if (lines[0] !== ARMOR_VERSION) fail('invalid_envelope', '不是 MOE4ALL-SUBMISSION/1 文件');
   const begin = lines.indexOf(BEGIN), end = lines.indexOf(END, begin + 1), headers = Object.create(null);
-  if (begin < 1 || end < begin || lines.slice(end + 1).some(line => line.trim())) fail('invalid_envelope', '封装边界不完整或含多余内容');
+  if (begin < 1 || end < begin || lines.slice(end + 1).some(line => trimWhitespace(line))) fail('invalid_envelope', '封装边界不完整或含多余内容');
   for (const line of lines.slice(1, begin)) {
-    if (!line.trim()) continue;
-    const match = /^\s*([a-zA-Z0-9-]+)\s*:\s*(.*?)\s*$/.exec(line);
+    if (!trimWhitespace(line)) continue;
+    const match = /^([^:]+):(.*)$/.exec(line);
     if (!match) fail('invalid_envelope', '封装 header 无效');
-    const name = match[1].toLowerCase();
+    const name = trimWhitespace(match[1]).toLowerCase();
+    if (!/^[a-z0-9-]+$/.test(name)) fail('invalid_envelope', '封装 header 名称无效');
     if (Object.hasOwn(headers, name)) fail('invalid_envelope', '封装 header 重复');
-    headers[name] = match[2];
+    headers[name] = trimWhitespace(match[2]);
   }
   if (!['benchmark', 'error'].includes(headers.kind) || headers.schema !== `${headers.kind}/1` || headers.encoding !== 'gzip+base64') fail('invalid_envelope', '类型、schema 或编码不支持');
   for (const [key, limit] of [['decoded-bytes', MAX_DECODED_BYTES], ['compressed-bytes', MAX_ARMOR_BYTES], ['summary-count', 512]]) {
@@ -122,7 +126,7 @@ export function inspectHeaders(input) {
   }
   if (!/^[a-f0-9]{64}$/.test(headers.sha256 || '') || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/.test(headers.id || '')) fail('invalid_envelope', '报告 ID 或摘要无效');
   if (!headers['created-at'] || !headers.engine || !Number.isFinite(Date.parse(headers['created-at']))) fail('invalid_envelope', '缺少有效时间或引擎版本');
-  const payloadLines = lines.slice(begin + 1, end).map(line => line.trim()).filter(Boolean);
+  const payloadLines = lines.slice(begin + 1, end).map(trimWhitespace).filter(Boolean);
   const base64 = payloadLines.join('');
   if (!base64 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64)) fail('invalid_envelope', 'Base64 编码无效');
   const summary = [];
@@ -140,7 +144,7 @@ export function validatePayload(kind, p, { submission = true } = {}) {
   require(object(p) && p.schema_version === 1, 'payload schema_version 必须为 1', '/schema_version');
   require(typeof p.id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/.test(p.id), '报告 ID 无效', '/id');
   require(typeof p.created_at_utc === 'string' && /(?:Z|\+00:00)$/.test(p.created_at_utc) && Number.isFinite(Date.parse(p.created_at_utc)), '时间必须为 UTC', '/created_at_utc');
-  require(typeof p.engine_version === 'string' && p.engine_version.length > 0 && p.engine_version.length <= 128, '缺少引擎版本', '/engine_version');
+  require(typeof p.engine_version === 'string' && p.engine_version.length > 0 && [...p.engine_version].length <= 128, '缺少引擎版本', '/engine_version');
   const rate = (r, path) => require(number(r) && r >= 0 && r <= 1e8, '吞吐量无效', path);
   if (kind === 'benchmark') {
     require(['quick', 'standard', 'full', 'manual'].includes(p.profile), '测试 profile 无效', '/profile');
@@ -188,9 +192,10 @@ export function validatePayload(kind, p, { submission = true } = {}) {
   } else {
     const allowed = ['schema_version', 'id', 'created_at_utc', 'engine_version', 'engine_commit', 'failure_kind', 'description', 'engine', 'hardware', 'model', 'launch', 'error', 'logs', 'privacy'];
     require(Object.keys(p).every(key => allowed.includes(key)), '报错包含未约定字段', '');
-    require(typeof p.failure_kind === 'string' && p.failure_kind.length <= 80, '缺少失败类型', '/failure_kind');
+    require(typeof p.failure_kind === 'string' && p.failure_kind.length > 0 && [...p.failure_kind].length <= 80, '缺少失败类型', '/failure_kind');
+    for (const key of ['engine', 'hardware', 'model', 'launch', 'error', 'logs', 'privacy']) require(object(p[key]), '报错字段必须为对象', '/' + key);
     require(typeof p.description === 'string' && [...p.description].length <= 4096, '问题描述最多 4096 字符', '/description');
-    if (submission) require(p.description.trim().length > 0, '请在引擎向导中补充问题描述后重新导出', '/description');
+    if (submission) require(trimWhitespace(p.description).length > 0, '请在引擎向导中补充问题描述后重新导出', '/description');
     require(object(p.error) && typeof p.error.message === 'string' && Array.isArray(p.error.chain), '错误信息无效', '/error');
     require(object(p.logs) && Array.isArray(p.logs.startup) && Array.isArray(p.logs.tail) && p.logs.startup.length <= 220 && p.logs.tail.length <= 12, '诊断日志范围超限', '/logs');
     require([...p.logs.startup, ...p.logs.tail, ...p.error.chain].every(line => typeof line === 'string'), '日志必须为文本行', '/logs');

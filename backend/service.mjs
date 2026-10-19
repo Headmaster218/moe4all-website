@@ -318,7 +318,7 @@ export function createService(env) {
       const row = await store.one('SELECT r.* FROM reports r JOIN receipt_grants g ON g.receipt_id=r.receipt_id WHERE r.receipt_id=? AND g.token_hash=?', receiptMatch[1], await tokenHash(bearer(request)));
       if (!row) deny(401, 'invalid_token', '回执凭证无效');
       if (publicPr && ['forwarding', 'pending_review'].includes(row.status) && (!row.next_attempt_at || row.next_attempt_at <= iso())) defer(() => syncPullRequest(row));
-      return { body: { receipt_id: row.receipt_id, kind: row.kind, report_id: row.report_id, status: row.status, updated_at: row.updated_at, public_url: row.public_url, resolution_version: row.resolution_version, failure_code: row.failure_code, body_retained: !!row.armor, review_mode: publicPr ? 'github_pr' : 'local_review', archive_mode: row.archive_json ? JSON.parse(row.archive_json).mode : null } };
+      return { body: { receipt_id: row.receipt_id, kind: row.kind, report_id: row.report_id, file_sha256: row.file_sha256, payload_sha256: row.payload_sha256, status: row.status, received_at: row.created_at, updated_at: row.updated_at, public_url: row.public_url, resolution_version: row.resolution_version, failure_code: row.failure_code, body_retained: !!row.armor, review_mode: publicPr ? 'github_pr' : 'local_review', archive_mode: row.archive_json ? JSON.parse(row.archive_json).mode : null } };
     }
     if (path.startsWith('/v1/admin')) {
       const actor = await admin(request);
