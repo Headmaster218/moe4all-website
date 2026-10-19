@@ -84,3 +84,52 @@ test('English navigation and corrected examples preserve their intended meaning'
   assert.ok(demo.future.question.en.includes('meeting materials'));
   assert.ok(demo.future.answer.en.includes('materials'));
 });
+
+function renderMacDownload(names, lang = 'en') {
+  const vm = require('node:vm');
+  const { downloadFor } = require('../release-model.js');
+  const repository = site.engineRepository, tag = 'release-1.0.3';
+  const release = { version: '1.0.3', tag, url: `https://github.com/${repository}/releases/tag/${tag}`, assets: names.map(name => ({ name, size: 1024, url: `https://github.com/${repository}/releases/download/${tag}/${name}` })) };
+  const listeners = {}, dialogs = [];
+  const document = {
+    currentScript: { src: 'https://moe4all.test/site-dialogs.js' }, documentElement: { lang },
+    querySelector: () => null, querySelectorAll: () => [],
+    body: { append: dialog => dialogs.push(dialog), classList: { add() {} } },
+    addEventListener: (name, listener) => { listeners[name] = listener; },
+    createElement: () => ({ open: false, addEventListener() {}, setAttribute() {}, showModal() { this.open = true; } })
+  };
+  const window = {
+    MOE4ALL_DATA: { site, releases: { engine: release } },
+    MoeSite: { getPlatform: () => ({ os: 'macos', arch: 'unknown' }), getDownload: (kind, platform) => downloadFor(kind === 'engine' ? release : null, repository, platform) },
+    addEventListener() {}
+  };
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'site-dialogs.js'), 'utf8'), { window, document, URL, MutationObserver: class { observe() {} } });
+  listeners.DOMContentLoaded();
+  listeners.click({ target: { closest: () => ({ hasAttribute: name => name === 'data-download' }) }, button: 0, preventDefault() {} });
+  const html = dialogs.find(dialog => dialog.id === 'download-dialog').innerHTML;
+  assert.ok(html.includes('data-system="macos" aria-pressed="true"'));
+  return html.match(/<article[^>]*data-product="engine">.*?<\/article>/s)[0];
+}
+
+test('macOS downloads expose ARM and Intel packages explicitly instead of assuming x86_64', () => {
+  const arm = 'MoE4All-macOS-arm64-v1.0.3.tar.gz', intel = 'MoE4All-macOS-x86_64-v1.0.3.tar.gz';
+  for (const [names, labels] of [[[arm], ['Apple Silicon']], [[intel], ['Intel Mac']], [[arm, intel], ['Apple Silicon', 'Intel Mac']]]) {
+    const html = renderMacDownload(names);
+    for (const name of names) assert.ok(html.includes(name));
+    for (const label of labels) assert.ok(html.includes(`Download for ${label}`));
+    assert.equal((html.match(/data-direct="true"/g) || []).length, names.length);
+    assert.ok(!html.includes('No package for this operating system'));
+  }
+  assert.ok(renderMacDownload([arm], 'zh').includes('下载 Apple Silicon 版'));
+});
+
+test('macOS universal packages need no CPU guess and missing packages still fall back to Releases', () => {
+  const universal = 'MoE4All-macOS-universal-v1.0.3.dmg';
+  const html = renderMacDownload([universal, 'MoE4All-macOS-arm64-v1.0.3.tar.gz']);
+  assert.ok(html.includes(universal));
+  assert.ok(html.includes('Download for macOS (Universal)'));
+  assert.equal((html.match(/data-direct="true"/g) || []).length, 1);
+  const missing = renderMacDownload([]);
+  assert.ok(missing.includes('data-direct="false"'));
+  assert.ok(missing.includes('No package for this operating system'));
+});

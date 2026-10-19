@@ -15,6 +15,16 @@ test('detects Windows, Linux, macOS and mobile without assuming mobile is deskto
   assert.equal(detectPlatform({ userAgent: 'Android Linux' }).os, 'unknown');
 });
 
+test('recognizes macOS Safari without Client Hints or a reported CPU architecture', () => {
+  const userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15';
+  for (const platform of ['MacIntel', '']) {
+    // Apple Silicon Safari can report the same Intel UA; it is not a CPU hint.
+    assert.deepEqual(detectPlatform({ platform, userAgent, maxTouchPoints: 0 }), { os: 'macos', arch: 'unknown' });
+  }
+  assert.equal(detectPlatform({ platform: 'MacIntel', userAgent, maxTouchPoints: 5 }).os, 'unknown');
+  assert.equal(detectPlatform({ platform: 'iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 Version/18.6 Mobile/15E148 Safari/604.1' }).os, 'unknown');
+});
+
 test('selects the matching uploaded Windows and Linux packages', () => {
   const release = item([asset('MoE4All-Agent-Windows-x86_64-v1.0.0.zip'), asset('MoE4All-Agent-Linux-x86_64-v1.0.0.tar.gz'), asset('MoE4All-Agent-Linux-arm64-v1.0.0.tar.gz')]);
   for (const [os, arch, suffix] of [['windows', 'x86_64', '.zip'], ['linux', 'x86_64', '.tar.gz'], ['linux', 'arm64', '.tar.gz']]) {

@@ -28,11 +28,23 @@
     const name = kind === "agent" ? "MoE4All Agent" : kind === "enginePreview" ? "Engine Preview" : "MoE4All Engine";
     const repo = kind === "agent" ? site.agentRepository : site.engineRepository;
     const result = api.getDownload(kind, target);
-    const title = result.direct ? t(`下载 ${platforms[target.os]} 版`, `Download for ${platforms[target.os]}`) : t("查看发行页", "View releases");
+    let downloads = [{ result, title: result.direct ? t(`下载 ${platforms[target.os]} 版`, `Download for ${platforms[target.os]}`) : t("查看发行页", "View releases") }];
+    if (target.os === "macos") {
+      // Safari's Intel UA can also describe Apple Silicon; name the actual packages instead of guessing.
+      const universal = api.getDownload(kind, { os: "macos", arch: "unknown" });
+      const available = universal.direct
+        ? [{ result: universal, title: t("下载 macOS 通用版", "Download for macOS (Universal)") }]
+        : [["arm64", "Apple Silicon"], ["x86_64", "Intel Mac"]].map(([arch, name]) => ({
+          result: api.getDownload(kind, { os: "macos", arch }),
+          title: t(`下载 ${name} 版`, `Download for ${name}`)
+        })).filter(option => option.result.direct);
+      if (available.length) downloads = available;
+    }
     const status = item ? `v${escape(item.version)}${item.prerelease ? " · "+t("预览版", "Preview") : ""}` : t("尚无发行版", "No release yet");
     const description = kind === "agent" ? t("桌面应用、本地引擎与插件，一个整合包。", "Desktop app, local engine and plugins in one bundle.") : kind === "enginePreview" ? t("最新引擎候选版本。", "The latest Engine preview release.") : t("终端对话与 OpenAI 兼容 API。", "Chat in your terminal or connect through an OpenAI-compatible API.");
-    const availability = !result.direct ? `<span class="site-availability">${t("暂无对应系统的安装包", "No package for this operating system")}</span>` : "";
-    return `<article class="site-product ${primary ? "site-product-primary" : "site-product-small"}" data-product="${kind}"><div class="site-product-icon">${icon(primary ? "panels-top-left" : "cpu")}</div><div class="site-product-copy"><div class="site-product-title"><h3>${name}</h3><span>${status}</span></div><p>${description}</p>${availability}</div><div class="site-product-actions"><a class="site-download ${primary ? "site-download-primary" : ""}" data-package="${kind}" data-direct="${result.direct}" href="${escape(result.url)}">${icon(result.direct ? "download" : "arrow-up-right")}<span>${title}</span></a>${history(repo)}</div></article>`;
+    const availability = !downloads.some(option => option.result.direct) ? `<span class="site-availability">${t("暂无对应系统的安装包", "No package for this operating system")}</span>` : "";
+    const actions = downloads.map(({ result, title }) => `<a class="site-download ${primary ? "site-download-primary" : ""}" data-package="${kind}" data-direct="${result.direct}" href="${escape(result.url)}">${icon(result.direct ? "download" : "arrow-up-right")}<span>${title}</span></a>`).join("");
+    return `<article class="site-product ${primary ? "site-product-primary" : "site-product-small"}" data-product="${kind}"><div class="site-product-icon">${icon(primary ? "panels-top-left" : "cpu")}</div><div class="site-product-copy"><div class="site-product-title"><h3>${name}</h3><span>${status}</span></div><p>${description}</p>${availability}</div><div class="site-product-actions">${actions}${history(repo)}</div></article>`;
   }
   function pluginActions() {
     const p = site.pluginInstall;
