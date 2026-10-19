@@ -1,6 +1,6 @@
 # MoE4All 社区提交后端协议 v1
 
-状态：Draft。协议、本地服务和测试实现已存在；生产 Worker、GitHub Bot 与真实 PR 流程仍需部署验收。
+状态：本地实现。异步转发、限额、清理和回执均有测试；本次更新尚未部署，生产 Worker、Bot 与真实 PR 流程仍需上线验收。
 
 ## 1. 目标与边界
 
@@ -19,7 +19,7 @@ Cloudflare 是可靠转发层，不是长期报告仓库：
 
 GitHub `main` 是最终公开数据源。后端不自动合并 PR、不直接写入 `main`、不创建 Issue。GitHub 侧 CI 与维护者审核规则不属于本后端协议。
 
-排行榜从网站静态压缩索引读取已审核成绩，在浏览器筛选与分页，不依赖本 API。`GET /benchmarks` 与 Git 导入端点仅保留兼容；上传、确认、回执仍使用下列接口。
+排行榜从网站静态压缩索引读取已审核成绩，在浏览器筛选与分页，不依赖本 API。`GET /benchmarks` 仅保留旧派生数据兼容；Git 导入端点在正式 PR 模式返回 404，直接 Git 提交不进入 D1。
 
 正式地址：
 
@@ -39,8 +39,8 @@ API:  https://api.moe4all.com/v1
 
 限制：
 
-- 完整 `.m4b/.m4e` 封装文件最大 512 KiB。
-- 解压后 JSON 最大 4 MiB。
+- 完整 `.m4b/.m4e` 封装文件最大 128 KiB。
+- 解压后 JSON 最大 128 KiB。
 - `file_sha256` 是整个封装文件的 SHA-256，用于绑定上传和复核 PR 原件。
 - `payload_sha256` 是解压后原始 JSON 字节的 SHA-256，用于内容去重。
 - 同类型、同报告 ID、不同 payload 拒绝覆盖。
@@ -63,7 +63,7 @@ API:  https://api.moe4all.com/v1
 
 两类 PR 在创建后立即公开，不必等到合并。确认页必须展示报告类型、ID、大小、文件 hash、可读摘要和公开用途，且同意框不得默认勾选。
 
-没有 GitHub 账户的用户使用本流程。能够直接使用 GitHub 的 Benchmark 提交者也可以绕过上传 API，直接提交同格式 PR。
+Benchmark 和错误报告都支持两条路线：有 GitHub 账户且可使用 Git 工具时直接提交同格式 PR；否则使用本流程。网页仅拖入引擎生成的封装文件，不手工编辑 JSON。两条路线都需维护者手动合并，不创建 Issue。
 
 ## 4. 接口
 
@@ -80,7 +80,7 @@ API:  https://api.moe4all.com/v1
 | `POST` | `/upload-sessions/{id}/report` | 上传原始报告文件 |
 | `GET` | `/receipts/{id}` | 查询 PR 与归档状态 |
 | `GET` | `/benchmarks` | 查询已收录 Benchmark 的派生数据 |
-| `POST` | `/integrations/github/import` | 受信任任务导入直接合并的 Benchmark |
+| `POST` | `/integrations/github/import` | 旧本地兼容接口；正式 PR 模式为 404 |
 
 ### 创建会话
 
@@ -106,6 +106,10 @@ API:  https://api.moe4all.com/v1
 - `max_upload_bytes`
 
 会话默认有效15分钟。`session_token` 只供文件端使用；`verification_url` 只携带独立的浏览器确认凭证。
+
+可选 `summary` 是最多 8 行、每行最多 500 个 Unicode 字符的可读摘要数组。确认页在收到原件前明确标注“客户端提供，尚未校验原件”；旧客户端不提供摘要时，提示在 CMD 核对。最终上传会重新生成、比对封装摘要，不信任这个元数据。上传后确认端点返回已校验摘要与 `summary_verified=true`。
+
+`turnstile_site_key`、摘要与校验标记仅由浏览器 `/confirmation` 返回，不出现在文件端轮询响应中。
 
 ### 浏览器确认
 
@@ -140,6 +144,8 @@ Accept: application/json
 - `public_url`（PR 尚未建立时为 `null`）
 - `duplicate`
 
+首次响应状态为 `forwarding`，不等待 GitHub 网络请求。后台立即尝试转发；定时任务每 5 分钟补偿重试，失败采用退避。PR 待审核状态每 15 分钟同步一次；回执读取本身不等待 GitHub。
+
 上传失败不得删除客户端原件。回执凭证应单独保存在本地私有目录，不写入报告、日志或 Git。
 
 ## 5. 状态
@@ -150,9 +156,11 @@ Accept: application/json
 | `pending_review` | PR 已建立，PR head 原件已通过 hash 复核 |
 | `published` | PR 已合并，且 main 中的原件已复核 |
 | `rejected` | PR 已关闭且未合并 |
-| `delivery_failed` | 转发期限已结束，需要重新上传本地原件 |
+| `delivery_failed` | 转发期限已结束，正文已清理；从向导重新导出新 ID 的报告再提交 |
 
 `GET /receipts/{id}` 使用 `receipt_token` 返回当前状态、更新时间、PR 或 Git 文件地址。错误报告的 `published` 只表示已归档，不表示问题已经修复。
+
+回执还包含 `failure_code`、`body_retained`。同 ID 重传只返回原回执，不重复计数或重启失败期限；重新尝试已终止的报告须重新导出。客户端必须读取状态，不能把 HTTP 200 等同于 PR 已建立。
 
 ## 6. GitHub 转发
 
@@ -181,6 +189,8 @@ GitHub 暂时不可用时保留原件并重试。重试必须幂等：相同报�
 - 每个来源24小时内最多创建100个会话，并保留短时间突发限制。
 - 来源使用服务端盐化摘要计数，不持久保存明文 IP。
 
+50 份报告和 100 个会话均使用滚动 24 小时窗口；重复报告和校验失败不消耗成功报告额度。入库、容量检查与成功报告计数在同一事务完成。短期突发上限为每来源每 15 分钟创建 20 个会话、上传 30 次。直接 Git PR 不受 Cloudflare 来源配额约束。
+
 过期会话、限流桶和失效同步锁应定期清理。
 
 ## 8. 安全与隐私
@@ -190,7 +200,7 @@ GitHub 暂时不可用时保留原件并重试。重试必须幂等：相同报�
 - 确认 URL 使用 fragment；页面读取后立即从地址栏清除，并使用 `Referrer-Policy: no-referrer`。
 - `session_token`、浏览器凭证、`receipt_token`、Turnstile secret 和 GitHub token 不能互换或进入普通日志。
 - 错误报告不得包含 prompt、response、API key 或未脱敏本地路径；客户端声明后，服务端仍需再次检查。
-- GitHub Bot 使用最小权限，仅允许创建报告分支、写入受限目录和创建 PR。
+- GitHub Bot token 限定目标仓库及所需权限；报告分支与目录由转发代码约束，建议同时保护 `main` 分支。
 - 本地开发模式只能监听 loopback，可跳过 Turnstile，但不得部署到公网。
 
 ## 9. 错误处理

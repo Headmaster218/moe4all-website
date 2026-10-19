@@ -33,8 +33,8 @@ test('health exposes implementation limits and the API reference records the v1 
   assert.equal(actual.protocol, 'MOE4ALL-SUBMISSION/1');
   assert.equal(actual.max_upload_bytes, MAX_ARMOR_BYTES);
   assert.equal(actual.max_decoded_bytes, MAX_DECODED_BYTES);
-  assert.match(document, /封装文件最大 512 KiB/);
-  assert.match(document, /解压后 JSON 最大 4 MiB/);
+  assert.match(document, /封装文件最大 128 KiB/);
+  assert.match(document, /解压后 JSON 最大 128 KiB/);
 });
 
 test('documented delivery lifecycle covers both report kinds and durable receipt states', () => {

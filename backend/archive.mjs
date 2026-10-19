@@ -9,7 +9,7 @@ export class GitHubArchive {
   }
   async api(path, method = 'GET', body) {
     const response = await this.fetcher(`https://api.github.com/repos/${this.repository}/${path}`, {
-      method, redirect: 'error', headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'MoE4All-Submissions' },
+      method, redirect: 'error', signal: this.signal ? AbortSignal.any([this.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'MoE4All-Submissions' },
       ...(body ? { body: JSON.stringify(body) } : {})
     });
     if (!response.ok) { const error = new Error('GitHub archive request failed'); error.statusCode = response.status; throw error; }
@@ -31,16 +31,22 @@ export class GitHubArchive {
     return Uint8Array.from(atob(content.content.replace(/\s/g, '')), c => c.charCodeAt(0));
   }
   async process(row) {
+    const request = Object.create(this);
+    request.signal = AbortSignal.timeout(25000);
+    return request.processReport(row);
+  }
+  async processReport(row) {
     const kind = row.kind || 'benchmark';
     if (!['benchmark', 'error'].includes(kind) || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/.test(row.report_id)) throw new Error('Invalid report identity');
-    const created = /^created-at:\s*(\d{4}-\d{2})/m.exec(row.armor.replace(/\r\n?/g, '\n'))?.[1];
+    const created = row.report_created_at?.slice(0, 7) || /^created-at:\s*(\d{4}-\d{2})/m.exec((row.armor || '').replace(/\r\n?/g, '\n'))?.[1];
     if (!created) throw new Error('Cannot determine archive month');
     const path = `${kind === 'benchmark' ? 'benchmark-database' : 'error-database'}/v1/${created}/${row.report_id}.${kind === 'benchmark' ? 'm4b' : 'm4e'}`;
+    if (!/^\d{4}-(?:0[1-9]|1[0-2])$/.test(created) || (row.source_path && row.source_path !== path)) throw new Error('Invalid persisted archive path');
     try {
       const main = await this.api('git/ref/heads/main');
       const content = await this.api(`contents/${path}?ref=${main.object.sha}`);
       if (await sha256(Uint8Array.from(atob(content.content.replace(/\s/g, '')), c => c.charCodeAt(0))) !== row.file_sha256) throw new Error('Existing main archive differs from the approved original');
-      return { state: 'published', mode: this.mode, commit: main.object.sha, path, public_url: `https://github.com/${this.repository}/blob/${main.object.sha}/${path}`, file_sha256: row.file_sha256 };
+      return { state: 'published', verified: true, mode: this.mode, commit: main.object.sha, path, public_url: `https://github.com/${this.repository}/blob/${main.object.sha}/${path}`, file_sha256: row.file_sha256 };
     } catch (error) { if (error.statusCode !== 404) throw error; }
     const branch = `community/${kind}/${row.file_sha256}`, previous = JSON.parse(row.archive_json || '{}');
     let pr;
@@ -49,6 +55,7 @@ export class GitHubArchive {
       const existing = await this.api(`pulls?state=all&head=${encodeURIComponent(this.repository.split('/')[0] + ':' + branch)}&base=main`);
       pr = existing[0];
       if (!pr) {
+        if (!row.armor) throw new Error('Cannot recreate a missing PR after source cleanup');
         const main = await this.api('git/ref/heads/main');
         try { await this.api('git/refs', 'POST', { ref: `refs/heads/${branch}`, sha: main.object.sha }); }
         catch (error) { if (error.statusCode !== 422) throw error; }
@@ -78,13 +85,12 @@ export class GitHubArchive {
     if (pr.merged) {
       result.commit = pr.merge_commit_sha;
       if (!await this.verify({ ...row, archive_json: JSON.stringify(result) })) throw new Error('Merged archive verification failed');
-      return { ...result, state: 'published' };
+      return { ...result, verified: true, state: 'published' };
     }
-    if (pr.state !== 'open') return { ...result, state: 'rejected' };
     const changes = await this.api(`pulls/${pr.number}/files?per_page=2`);
     if (changes.length !== 1 || changes[0].filename !== path || changes[0].status !== 'added') throw new Error('Archive PR changed beyond the submitted report');
     const source = await this.api(`contents/${path}?ref=${pr.head.sha}`);
     if (await sha256(Uint8Array.from(atob(source.content.replace(/\s/g, '')), c => c.charCodeAt(0))) !== row.file_sha256) throw new Error('PR head does not match approved bytes');
-    return result;
+    return { ...result, verified: true, state: pr.state === 'open' ? 'pending' : 'rejected' };
   }
 }

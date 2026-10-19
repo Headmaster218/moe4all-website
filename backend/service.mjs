@@ -1,8 +1,7 @@
 import { Store } from './store.mjs';
-import { decodeSubmission, sha256, parseStrictJson, privacyFindings, benchmarkRows, MAX_ARMOR_BYTES, SubmissionError } from '../community/submission-codec.mjs';
+import { decodeSubmission, sha256, parseStrictJson, privacyFindings, benchmarkRows, MAX_ARMOR_BYTES, MAX_DECODED_BYTES, SubmissionError } from '../community/submission-codec.mjs';
 
 const encoder = new TextEncoder();
-const iso = () => new Date().toISOString();
 const random = prefix => prefix + [...crypto.getRandomValues(new Uint8Array(32))].map(n => n.toString(16).padStart(2, '0')).join('');
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/;
@@ -49,11 +48,15 @@ async function fingerprint(payload) {
 
 export function createService(env) {
   const store = new Store(env.DB);
+  const clock = () => env.now ? env.now() : Date.now();
+  const iso = () => new Date(clock()).toISOString();
   const publicPr = env.REVIEW_MODE === 'github_pr';
   const publicConsent = kind => kind === 'benchmark' ? 'public_benchmark' : 'public_error';
+  const sourceHash = request => tokenHash(`${env.RATE_LIMIT_SALT}:source:${env.clientAddress ? env.clientAddress(request) : request.headers.get('cf-connecting-ip') || 'unknown'}`);
+  const defer = task => { if (env.defer) env.defer(Promise.resolve().then(task).catch(() => {})); };
   const audit = (actor, action, receipt, detail = {}) => ["INSERT INTO audit_events(id,receipt_id,actor,action,detail_json,created_at) VALUES(?,?,?,?,?,?)", random('ev_'), receipt, actor, action, JSON.stringify(detail), iso()];
   async function limit(request, category, max, seconds = 900) {
-    const now = Date.now(), window = Math.floor(now / (seconds * 1000));
+    const now = clock(), window = Math.floor(now / (seconds * 1000));
     const address = env.clientAddress ? env.clientAddress(request) : request.headers.get('cf-connecting-ip') || 'unknown';
     const key = await tokenHash(`${env.RATE_LIMIT_SALT}:${address}:${category}:${window}`);
     await store.run('INSERT INTO rate_limits(bucket,count,expires_at) VALUES(?,1,?) ON CONFLICT(bucket) DO UPDATE SET count=count+1', key, new Date((window + 1) * seconds * 1000).toISOString());
@@ -64,7 +67,7 @@ export function createService(env) {
     const row = await store.one('SELECT * FROM upload_sessions WHERE id=?', id);
     const supplied = bearer(request);
     if (!row || !supplied || await tokenHash(supplied) !== (role === 'browser' ? row.authorize_hash : row.token_hash)) deny(401, 'invalid_token', '会话凭证无效');
-    if (Date.parse(row.expires_at) <= Date.now()) deny(410, 'session_expired', '上传会话已过期');
+    if (Date.parse(row.expires_at) <= clock()) deny(410, 'session_expired', '上传会话已过期');
     return row;
   }
   async function admin(request) {
@@ -74,21 +77,39 @@ export function createService(env) {
     return actor;
   }
   async function syncPullRequest(row) {
-    if (!publicPr || !env.ARCHIVE || row.publication_consent !== publicConsent(row.kind) || row.status !== 'pending_review') return row;
+    if (!publicPr || !env.ARCHIVE || row.publication_consent !== publicConsent(row.kind) || !['forwarding', 'pending_review', 'published', 'rejected'].includes(row.status)) return row;
     const now = iso(), owner = random('sync_');
-    const lock = await store.one('INSERT INTO pr_sync_locks(receipt_id,owner,expires_at) VALUES(?,?,?) ON CONFLICT(receipt_id) DO UPDATE SET owner=excluded.owner,expires_at=excluded.expires_at WHERE pr_sync_locks.expires_at<? RETURNING owner', row.receipt_id, owner, new Date(Date.now() + 120000).toISOString(), now);
+    const lock = await store.one('INSERT INTO pr_sync_locks(receipt_id,owner,expires_at) VALUES(?,?,?) ON CONFLICT(receipt_id) DO UPDATE SET owner=excluded.owner,expires_at=excluded.expires_at WHERE pr_sync_locks.expires_at<? RETURNING owner', row.receipt_id, owner, new Date(clock() + 600000).toISOString(), now);
     if (!lock) return row;
     try {
+      row = await store.one('SELECT * FROM reports WHERE receipt_id=?', row.receipt_id);
+      if (row.status === 'delivery_failed' || (row.next_attempt_at && row.next_attempt_at > now)) return row;
+      // Old, consented inbox rows need immutable provenance before their body can be released.
+      if (row.armor && !row.source_path) {
+        const decoded = await decodeSubmission(encoder.encode(row.armor));
+        if (decoded.fileSha256 !== row.file_sha256 || decoded.payloadSha256 !== row.payload_sha256 || decoded.id !== row.report_id || decoded.kind !== row.kind) throw new Error('Stored original differs');
+        row.report_created_at = decoded.headers['created-at'];
+        row.source_path = `${row.kind === 'benchmark' ? 'benchmark-database' : 'error-database'}/v1/${row.report_created_at.slice(0, 7)}/${row.report_id}.${row.kind === 'benchmark' ? 'm4b' : 'm4e'}`;
+        row.delivery_expires_at = new Date(Date.parse(row.created_at) + 72 * 3600000).toISOString();
+        await store.run('UPDATE reports SET source_path=?,report_created_at=?,delivery_expires_at=? WHERE receipt_id=?', row.source_path, row.report_created_at, row.delivery_expires_at, row.receipt_id);
+      }
+      if (row.armor && row.delivery_expires_at <= now) {
+        await store.batch([
+          ['UPDATE reports SET status=?,armor=NULL,body_deleted_at=?,failure_code=?,updated_at=?,next_attempt_at=NULL WHERE receipt_id=?', 'delivery_failed', now, 'delivery_expired', now, row.receipt_id],
+          audit('github-pr', 'delivery_expired', row.receipt_id)
+        ]);
+        return await store.one('SELECT * FROM reports WHERE receipt_id=?', row.receipt_id);
+      }
       const result = await env.ARCHIVE.process(row);
-      if (!['pending', 'published', 'rejected'].includes(result.state) || result.file_sha256 !== row.file_sha256 || (result.state === 'published' && !result.commit)) throw new Error('Invalid PR result');
+      if (!['pending', 'published', 'rejected'].includes(result.state) || result.verified !== true || result.path !== row.source_path || result.file_sha256 !== row.file_sha256 || (result.state === 'published' && !result.commit)) throw new Error('Invalid PR result');
       const status = result.state === 'pending' ? 'pending_review' : result.state;
       await store.batch([
-        ['UPDATE reports SET status=?,archive_json=?,public_url=?,updated_at=? WHERE receipt_id=? AND status=? AND publication_consent=?', status, JSON.stringify(result), result.public_url || null, iso(), row.receipt_id, 'pending_review', publicConsent(row.kind)],
+        ['UPDATE reports SET status=?,archive_json=?,public_url=?,updated_at=?,armor=NULL,body_deleted_at=coalesce(body_deleted_at,?),failure_code=NULL,delivery_attempts=delivery_attempts+1,next_attempt_at=? WHERE receipt_id=? AND publication_consent=?', status, JSON.stringify(result), result.public_url || null, iso(), iso(), status === 'pending_review' ? new Date(clock() + 900000).toISOString() : null, row.receipt_id, publicConsent(row.kind)],
         audit('github-pr', result.state === 'pending' ? 'pr_pending' : status, row.receipt_id, { pr: result.pr_number || null, file_sha256: row.file_sha256 })
       ]);
     } catch {
       await store.batch([
-        ['UPDATE reports SET updated_at=? WHERE receipt_id=? AND status=?', iso(), row.receipt_id, 'pending_review'],
+        ['UPDATE reports SET updated_at=?,delivery_attempts=delivery_attempts+1,next_attempt_at=?,failure_code=? WHERE receipt_id=?', iso(), new Date(clock() + Math.min(3600000, 30000 * 2 ** Math.min(row.delivery_attempts || 0, 7))).toISOString(), 'github_unavailable_or_unverified', row.receipt_id],
         audit('github-pr', 'pr_sync_failed', row.receipt_id)
       ]);
     } finally {
@@ -97,9 +118,50 @@ export function createService(env) {
     return await store.one('SELECT * FROM reports WHERE receipt_id=?', row.receipt_id);
   }
   async function syncPending() {
-    if (!publicPr || !env.ARCHIVE) return;
-    const rows = await store.all('SELECT * FROM reports WHERE status=? AND publication_consent IN (?,?) ORDER BY updated_at ASC LIMIT 10', 'pending_review', 'public_benchmark', 'public_error');
+    if (!publicPr) return;
+    const now = iso();
+    await store.batch([
+      ['UPDATE reports SET status=?,armor=NULL,body_deleted_at=?,failure_code=?,updated_at=?,next_attempt_at=NULL WHERE armor IS NOT NULL AND delivery_expires_at<=? AND publication_consent IN (?,?) AND NOT EXISTS(SELECT 1 FROM pr_sync_locks l WHERE l.receipt_id=reports.receipt_id AND l.expires_at>?)', 'delivery_failed', now, 'delivery_expired', now, now, 'public_benchmark', 'public_error', now],
+      ['DELETE FROM submission_admissions WHERE created_at<=?', new Date(clock() - 86400000).toISOString()],
+      ['DELETE FROM session_admissions WHERE created_at<=?', new Date(clock() - 86400000).toISOString()],
+      ['DELETE FROM upload_sessions WHERE expires_at<?', now],
+      ['DELETE FROM rate_limits WHERE expires_at<?', now],
+      ['DELETE FROM pr_sync_locks WHERE expires_at<=?', now]
+    ]);
+    if (!env.ARCHIVE) return;
+    const rows = await store.all('SELECT * FROM reports WHERE (status IN (?,?) OR (armor IS NOT NULL AND status IN (?,?))) AND publication_consent IN (?,?) AND (next_attempt_at IS NULL OR next_attempt_at<=?) ORDER BY coalesce(next_attempt_at,created_at) ASC LIMIT 3', 'forwarding', 'pending_review', 'published', 'rejected', 'public_benchmark', 'public_error', now);
     for (const row of rows) await syncPullRequest(row);
+  }
+  async function publicUpload(request, row, decoded) {
+    const prior = await store.one('SELECT * FROM reports WHERE kind=? AND report_id=?', row.kind, row.report_id);
+    if (prior && prior.payload_sha256 !== decoded.payloadSha256) deny(409, 'report_id_conflict', '相同报告 ID 对应不同内容');
+    if (prior && prior.publication_consent !== publicConsent(row.kind)) deny(409, 'consent_conflict', '旧私有报告不能通过重复上传改为公开，请重新导出新报告');
+    const receipt = random('rc_'), now = iso(), source = await sourceHash(request), since = new Date(clock() - 86400000).toISOString();
+    const reportCreated = decoded.headers['created-at'];
+    const sourcePath = `${row.kind === 'benchmark' ? 'benchmark-database' : 'error-database'}/v1/${reportCreated.slice(0, 7)}/${row.report_id}.${row.kind === 'benchmark' ? 'm4b' : 'm4e'}`;
+    // D1 serializes each batch: capacity and rolling success quota are checked in the same insertion.
+    await store.batch([
+      ['INSERT INTO reports(receipt_id,kind,report_id,file_sha256,payload_sha256,armor,size_bytes,summary_json,status,created_at,updated_at,publication_consent,source_path,report_created_at,delivery_expires_at) SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,? FROM upload_sessions WHERE id=? AND state IN (?,?) AND expires_at>? AND publication_consent=? AND (SELECT coalesce(sum(size_bytes),0) FROM reports WHERE armor IS NOT NULL)+?<=? AND (SELECT count(*) FROM submission_admissions WHERE source_hash=? AND created_at>?)<50 AND (SELECT count(*) FROM reports WHERE armor IS NOT NULL)<? ON CONFLICT(kind,report_id) DO NOTHING', receipt, row.kind, row.report_id, row.file_sha256, decoded.payloadSha256, decoded.text, decoded.sizeBytes, JSON.stringify(decoded.summary), 'forwarding', now, now, publicConsent(row.kind), sourcePath, reportCreated, new Date(clock() + 72 * 3600000).toISOString(), row.id, 'ready', 'uploaded', now, publicConsent(row.kind), decoded.sizeBytes, Number(env.MAX_STORED_BYTES || 134217728), source, since, Number(env.MAX_PENDING_REPORTS || 1000)],
+      ['INSERT INTO submission_admissions(receipt_id,source_hash,created_at) SELECT receipt_id,?,? FROM reports WHERE receipt_id=?', source, now, receipt]
+    ]);
+    const existing = await store.one('SELECT * FROM reports WHERE kind=? AND report_id=?', row.kind, row.report_id);
+    if (!existing) {
+      if ((await store.one('SELECT count(*) AS n FROM submission_admissions WHERE source_hash=? AND created_at>?', source, since)).n >= 50) deny(429, 'daily_limit', '同一来源在 24 小时内最多接收 50 份新报告，请保留文件稍后重试');
+      const current = await session(request, row.id);
+      if (!['ready', 'uploaded'].includes(current.state)) deny(409, 'session_closed', '会话已经结束');
+      deny(503, 'inbox_full', '转发缓冲区暂时已满，请保留文件稍后重试');
+    }
+    if (existing.payload_sha256 !== decoded.payloadSha256) deny(409, 'report_id_conflict', '相同报告 ID 对应不同内容');
+    if (existing.publication_consent !== publicConsent(row.kind)) deny(409, 'consent_conflict', '已有报告未授权公开');
+    const duplicate = receipt !== existing.receipt_id;
+    const grant = await receiptCredential(env.RATE_LIMIT_SALT, row.id, existing.receipt_id);
+    await store.batch([
+      ['INSERT OR IGNORE INTO receipt_grants(token_hash,receipt_id,created_at) VALUES(?,?,?)', await tokenHash(grant), existing.receipt_id, now],
+      ['UPDATE upload_sessions SET receipt_id=?,state=? WHERE id=?', existing.receipt_id, 'uploaded', row.id],
+      audit('submitter', duplicate ? 'duplicate_received' : 'received', existing.receipt_id, { kind: row.kind })
+    ]);
+    defer(() => syncPullRequest(existing));
+    return { status: duplicate ? 200 : 202, body: { receipt_id: existing.receipt_id, receipt_token: grant, kind: row.kind, report_id: row.report_id, file_sha256: existing.file_sha256, submitted_file_sha256: row.file_sha256, payload_sha256: decoded.payloadSha256, status: existing.status, public_url: existing.public_url, review_mode: 'github_pr', duplicate, received_at: existing.created_at } };
   }
   async function archiveReport(row, actor) {
     if (!env.ARCHIVE) deny(503, 'archive_unconfigured', '尚未配置归档目标，原件仍保留在收件箱');
@@ -129,6 +191,7 @@ export function createService(env) {
     if (decoded.kind !== row.kind || decoded.id !== row.report_id) deny(409, 'file_mismatch', '文件类型或报告 ID 不一致');
     const findings = privacyFindings(decoded.payload);
     if (findings.length) deny(422, 'sensitive_content', '发现疑似私密信息，请回到向导检查后重新导出', findings);
+    if (publicPr) return publicUpload(request, row, decoded);
     let existing = await store.one('SELECT * FROM reports WHERE kind=? AND report_id=?', row.kind, row.report_id);
     if (existing && existing.payload_sha256 !== decoded.payloadSha256) deny(409, 'report_id_conflict', '相同报告 ID 对应不同内容');
     const receipt = existing?.receipt_id || random('rc_'), now = iso();
@@ -159,16 +222,13 @@ export function createService(env) {
       audit('submitter', receipt === existing.receipt_id && existing.created_at === now ? 'received' : 'duplicate_received', existing.receipt_id, { kind: row.kind })
     ]);
     const duplicate = receipt !== existing.receipt_id || existing.created_at !== now;
-    if (publicPr) {
-      await store.run('UPDATE reports SET publication_consent=? WHERE receipt_id=?', publicConsent(row.kind), existing.receipt_id);
-      existing = await syncPullRequest({ ...existing, publication_consent: publicConsent(row.kind) });
-    }
     return { status: duplicate ? 200 : 202, body: { receipt_id: existing.receipt_id, receipt_token: grant, kind: row.kind, report_id: row.report_id, file_sha256: existing.file_sha256, submitted_file_sha256: row.file_sha256, payload_sha256: decoded.payloadSha256, status: existing.status, public_url: existing.public_url, review_mode: publicPr ? 'github_pr' : 'local_review', duplicate, received_at: existing.created_at } };
   }
 
   async function route(request) {
     const url = new URL(request.url), path = url.pathname.replace(/\/$/, ''), method = request.method;
-    if (method === 'GET' && path === '/v1/health') return { body: { mode: env.MODE, review_mode: publicPr ? 'github_pr' : 'local_review', protocol: 'MOE4ALL-SUBMISSION/1', max_upload_bytes: MAX_ARMOR_BYTES, max_decoded_bytes: 4194304, authentication: env.MODE === 'local' ? 'local_confirmation' : 'turnstile', git_archive: env.ARCHIVE?.mode || 'unconfigured' } };
+    if (env.MODE === 'production' && url.protocol !== 'https:') deny(400, 'https_required', '正式上传接口仅接受 HTTPS');
+    if (method === 'GET' && path === '/v1/health') return { body: { mode: env.MODE, review_mode: publicPr ? 'github_pr' : 'local_review', protocol: 'MOE4ALL-SUBMISSION/1', max_upload_bytes: MAX_ARMOR_BYTES, max_decoded_bytes: MAX_DECODED_BYTES, authentication: env.MODE === 'local' ? 'local_confirmation' : 'turnstile', git_archive: env.ARCHIVE?.mode || 'unconfigured' } };
     if (method === 'GET' && path === '/v1/benchmarks') {
       const rows = await store.all('SELECT b.row_json,r.is_fixture FROM benchmark_rows b JOIN reports r ON r.receipt_id=b.receipt_id WHERE r.status=? ORDER BY r.created_at DESC LIMIT 1000', 'published');
       const totals = await store.one(`WITH samples AS (
@@ -181,6 +241,7 @@ export function createService(env) {
       return { body: { mode: env.MODE, total: totals.total, bounds, rows: rows.flatMap(r => JSON.parse(r.row_json).map(item => ({ ...item, demo: !!r.is_fixture }))).slice(0, 1000) } };
     }
     if (method === 'POST' && path === '/v1/integrations/github/import') {
+      if (publicPr) deny(404, 'not_found', '排行榜由 Git main 的静态快照生成，无需导入 D1');
       const supplied = bearer(request);
       if (!env.GIT_IMPORT_TOKEN || !supplied || await tokenHash(supplied) !== await tokenHash(env.GIT_IMPORT_TOKEN)) deny(401, 'invalid_token', '导入凭证无效');
       if (!env.ARCHIVE?.readMerged) deny(503, 'archive_unconfigured', 'Git 读取器尚未配置');
@@ -205,18 +266,23 @@ export function createService(env) {
     if (method === 'POST' && path === '/v1/upload-sessions') {
       if (publicPr && !env.ARCHIVE) deny(503, 'archive_unconfigured', 'PR 提交服务尚未配置，请保留文件稍后再试');
       await limit(request, 'create', 20);
-      const meta = await jsonBody(request);
-      if (!object(meta) || Object.keys(meta).some(k => !['kind', 'report_id', 'file_sha256', 'size_bytes'].includes(k)) || !['benchmark', 'error'].includes(meta.kind) || !idPattern.test(meta.report_id || '') || !hashPattern.test(meta.file_sha256 || '') || !Number.isSafeInteger(meta.size_bytes) || meta.size_bytes < 1 || meta.size_bytes > MAX_ARMOR_BYTES) deny(400, 'invalid_request', '会话参数无效；使用 kind、report_id、file_sha256、size_bytes');
-      const pending = await store.one('SELECT count(*) AS n FROM reports WHERE status IN (?,?)', 'pending_review', 'archiving');
-      if (pending.n >= Number(env.MAX_PENDING_REPORTS || 1000)) deny(503, 'inbox_full', '收件箱暂时已满，请保留文件稍后重试');
+      const meta = await jsonBody(request, 32768);
+      if (!object(meta) || Object.keys(meta).some(k => !['kind', 'report_id', 'file_sha256', 'size_bytes', 'summary'].includes(k)) || !['benchmark', 'error'].includes(meta.kind) || !idPattern.test(meta.report_id || '') || !hashPattern.test(meta.file_sha256 || '') || !Number.isSafeInteger(meta.size_bytes) || meta.size_bytes < 1 || meta.size_bytes > MAX_ARMOR_BYTES || (meta.summary !== undefined && (!Array.isArray(meta.summary) || meta.summary.length > 8 || meta.summary.some(line => typeof line !== 'string' || [...line].length > 500 || /[\x00-\x1f\x7f]/.test(line))))) deny(400, 'invalid_request', '会话参数无效；摘要为可选的简短文本数组');
+      const duplicate = await store.one('SELECT receipt_id FROM reports WHERE kind=? AND report_id=?', meta.kind, meta.report_id);
+      const pending = await store.one('SELECT count(*) AS n FROM reports WHERE armor IS NOT NULL');
+      if (!duplicate && pending.n >= Number(env.MAX_PENDING_REPORTS || 1000)) deny(503, 'inbox_full', '收件箱暂时已满，请保留文件稍后重试');
       const storage = await store.one('SELECT coalesce(sum(size_bytes),0) AS n FROM reports WHERE armor IS NOT NULL');
       const sessions = await store.one('SELECT count(*) AS n FROM upload_sessions WHERE expires_at>?', iso());
-      if (storage.n + meta.size_bytes > Number(env.MAX_STORED_BYTES || 134217728) || sessions.n >= 2000) deny(503, 'inbox_full', '收件箱暂时已满，请保留文件稍后重试');
-      const id = random('us_'), token = random('ust_'), authorization = random('browser_'), now = iso(), expires = new Date(Date.now() + 900000).toISOString();
+      if ((!duplicate && storage.n + meta.size_bytes > Number(env.MAX_STORED_BYTES || 134217728)) || sessions.n >= 2000) deny(503, 'inbox_full', '收件箱暂时已满，请保留文件稍后重试');
+      const id = random('us_'), token = random('ust_'), authorization = random('browser_'), now = iso(), expires = new Date(clock() + 900000).toISOString();
+      const source = await sourceHash(request), since = new Date(clock() - 86400000).toISOString();
       await store.batch([
         ['DELETE FROM upload_sessions WHERE expires_at<?', now], ['DELETE FROM rate_limits WHERE expires_at<?', now],
-        ['INSERT INTO upload_sessions(id,token_hash,authorize_hash,kind,report_id,file_sha256,size_bytes,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?,?)', id, await tokenHash(token), await tokenHash(authorization), meta.kind, meta.report_id, meta.file_sha256, meta.size_bytes, expires, now]
+        ['DELETE FROM session_admissions WHERE created_at<=?', since],
+        ['INSERT INTO upload_sessions(id,token_hash,authorize_hash,kind,report_id,file_sha256,size_bytes,expires_at,created_at,summary_json) SELECT ?,?,?,?,?,?,?,?,?,? WHERE (SELECT count(*) FROM session_admissions WHERE source_hash=? AND created_at>?)<?', id, await tokenHash(token), await tokenHash(authorization), meta.kind, meta.report_id, meta.file_sha256, meta.size_bytes, expires, now, meta.summary ? JSON.stringify(meta.summary) : null, source, since, publicPr ? 100 : 1000000],
+        ['INSERT INTO session_admissions(session_id,source_hash,created_at) SELECT id,?,? FROM upload_sessions WHERE id=?', source, now, id]
       ]);
+      if (!await store.one('SELECT id FROM upload_sessions WHERE id=?', id)) deny(429, 'daily_session_limit', '同一来源在 24 小时内最多创建 100 个会话，请稍后重试');
       return { status: 201, body: { session_id: id, session_token: token, state: 'awaiting_verification', expires_at: expires, poll_after_seconds: 3, verification_url: `${env.SITE_ORIGIN}/community/upload.html#session=${id}&authorize=${authorization}`, max_upload_bytes: MAX_ARMOR_BYTES } };
     }
     const match = /^\/v1\/upload-sessions\/([A-Za-z0-9_-]+)(?:\/(authorize|cancel|report|confirmation))?$/.exec(path);
@@ -225,7 +291,8 @@ export function createService(env) {
       if (method === 'GET' && (!action || action === 'confirmation')) {
         const row = await session(request, id, action === 'confirmation' ? 'browser' : 'client');
         await limit(request, 'poll', 700);
-        return { body: { session_id: id, state: row.state, kind: row.kind, report_id: row.report_id, file_sha256: row.file_sha256, size_bytes: row.size_bytes, expires_at: row.expires_at, poll_after_seconds: 3, turnstile_site_key: env.TURNSTILE_SITE_KEY || null, mode: env.MODE, review_mode: publicPr ? 'github_pr' : 'local_review', consent: publicPr ? publicConsent(row.kind) : row.kind === 'benchmark' ? 'public_benchmark' : 'private_error' } };
+        const report = row.receipt_id ? await store.one('SELECT summary_json FROM reports WHERE receipt_id=?', row.receipt_id) : null;
+        return { body: { session_id: id, state: row.state, kind: row.kind, report_id: row.report_id, file_sha256: row.file_sha256, size_bytes: row.size_bytes, expires_at: row.expires_at, poll_after_seconds: 3, ...(action === 'confirmation' ? { turnstile_site_key: env.TURNSTILE_SITE_KEY || null, summary: report ? JSON.parse(report.summary_json) : row.summary_json ? JSON.parse(row.summary_json) : null, summary_verified: !!report } : {}), mode: env.MODE, review_mode: publicPr ? 'github_pr' : 'local_review', consent: publicPr ? publicConsent(row.kind) : row.kind === 'benchmark' ? 'public_benchmark' : 'private_error' } };
       }
       if (method === 'POST' && ['authorize', 'cancel'].includes(action)) {
         const row = await session(request, id, 'browser');
@@ -248,10 +315,10 @@ export function createService(env) {
     const receiptMatch = /^\/v1\/receipts\/([A-Za-z0-9_-]+)$/.exec(path);
     if (method === 'GET' && receiptMatch) {
       await limit(request, 'receipt', 100);
-      let row = await store.one('SELECT r.* FROM reports r JOIN receipt_grants g ON g.receipt_id=r.receipt_id WHERE r.receipt_id=? AND g.token_hash=?', receiptMatch[1], await tokenHash(bearer(request)));
+      const row = await store.one('SELECT r.* FROM reports r JOIN receipt_grants g ON g.receipt_id=r.receipt_id WHERE r.receipt_id=? AND g.token_hash=?', receiptMatch[1], await tokenHash(bearer(request)));
       if (!row) deny(401, 'invalid_token', '回执凭证无效');
-      if (publicPr && Date.now() - Date.parse(row.updated_at) >= 60000) row = await syncPullRequest(row);
-      return { body: { receipt_id: row.receipt_id, kind: row.kind, report_id: row.report_id, status: row.status, updated_at: row.updated_at, public_url: row.public_url, resolution_version: row.resolution_version, review_mode: publicPr ? 'github_pr' : 'local_review', archive_mode: row.archive_json ? JSON.parse(row.archive_json).mode : null } };
+      if (publicPr && ['forwarding', 'pending_review'].includes(row.status) && (!row.next_attempt_at || row.next_attempt_at <= iso())) defer(() => syncPullRequest(row));
+      return { body: { receipt_id: row.receipt_id, kind: row.kind, report_id: row.report_id, status: row.status, updated_at: row.updated_at, public_url: row.public_url, resolution_version: row.resolution_version, failure_code: row.failure_code, body_retained: !!row.armor, review_mode: publicPr ? 'github_pr' : 'local_review', archive_mode: row.archive_json ? JSON.parse(row.archive_json).mode : null } };
     }
     if (path.startsWith('/v1/admin')) {
       const actor = await admin(request);
@@ -365,7 +432,7 @@ export function createService(env) {
         const known = error instanceof ApiError || error instanceof SubmissionError;
         const status = error.status || (error instanceof SubmissionError ? error.code === 'payload_too_large' ? 413 : 422 : 500);
         if (!known && env.onError) env.onError(requestId, error);
-        if (status === 429) headers['Retry-After'] = '60';
+        if (status === 429 || status === 503) headers['Retry-After'] = '60';
         return new Response(JSON.stringify({ api_version: 1, error: { code: known ? error.code : 'internal_error', message: known ? error.message : '服务暂时不可用，原文件请保留', retryable: status === 429 || status >= 500, fields: error.fields || (error.path ? [{ path: error.path, code: error.code }] : []) }, request_id: requestId }), { status, headers });
       }
     }

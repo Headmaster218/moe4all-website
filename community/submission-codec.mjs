@@ -100,7 +100,7 @@ export function generatedSummary(kind, p) {
 
 export function inspectHeaders(input) {
   const bytes = typeof input === 'string' ? encoder.encode(input) : input;
-  if (bytes.byteLength > MAX_ARMOR_BYTES) fail('payload_too_large', '封装文件超过 512 KiB');
+  if (bytes.byteLength > MAX_ARMOR_BYTES) fail('payload_too_large', '封装文件超过 128 KiB');
   let text;
   try { text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes); } catch { fail('invalid_envelope', '文件不是有效 UTF-8'); }
   const lines = text.replace(/\r\n?/g, '\n').split('\n');
@@ -117,7 +117,8 @@ export function inspectHeaders(input) {
   }
   if (!['benchmark', 'error'].includes(headers.kind) || headers.schema !== `${headers.kind}/1` || headers.encoding !== 'gzip+base64') fail('invalid_envelope', '类型、schema 或编码不支持');
   for (const [key, limit] of [['decoded-bytes', MAX_DECODED_BYTES], ['compressed-bytes', MAX_ARMOR_BYTES], ['summary-count', 512]]) {
-    if (!/^\d+$/.test(headers[key] || '') || !Number.isSafeInteger(Number(headers[key])) || Number(headers[key]) > limit) fail('invalid_envelope', '封装长度声明无效或超限');
+    if (!/^\d+$/.test(headers[key] || '') || !Number.isSafeInteger(Number(headers[key]))) fail('invalid_envelope', '封装长度声明无效');
+    if (Number(headers[key]) > limit) fail(key === 'summary-count' ? 'invalid_envelope' : 'payload_too_large', '封装长度声明超过限制');
   }
   if (!/^[a-f0-9]{64}$/.test(headers.sha256 || '') || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/.test(headers.id || '')) fail('invalid_envelope', '报告 ID 或摘要无效');
   if (!headers['created-at'] || !headers.engine || !Number.isFinite(Date.parse(headers['created-at']))) fail('invalid_envelope', '缺少有效时间或引擎版本');
@@ -163,7 +164,7 @@ export function validatePayload(kind, p, { submission = true } = {}) {
       contexts.add(c.requested_context_tokens);
       require(Array.isArray(c.failures) && Array.isArray(c.decode) && c.decode.length <= 64, '缺少 decode / failures 数组', path);
       if (c.prefill !== null && c.prefill !== undefined) { require(object(c.prefill), 'Prefill 无效', path); rate(c.prefill.tokens_per_second, path + '/prefill/tokens_per_second'); }
-      if (p.profile === 'manual') { require(object(c.manual_result), '手动测试缺少原始结果', path); rate(c.manual_result.average_tokens_per_second, path + '/manual_result'); }
+      if (p.profile === 'manual') { require(object(c.manual_result) && ['prefill', 'decode'].includes(c.manual_result.kind), '手动测试缺少有效的 prefill / decode 原始结果', path); rate(c.manual_result.average_tokens_per_second, path + '/manual_result'); }
       else require(c.prefill != null || c.failures.length > 0, '需要 Prefill 结果或失败记录', path);
       const slots = new Set();
       for (const [j, d] of c.decode.entries()) {

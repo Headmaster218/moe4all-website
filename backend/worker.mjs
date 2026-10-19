@@ -20,16 +20,16 @@ export async function verifyAccess(request, env) {
     return await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, bytes(parts[2]), new TextEncoder().encode(parts.slice(0, 2).join('.'))) ? claims.email : null;
   } catch { return null; }
 }
-function service(env) {
+function service(env, ctx) {
   if (!env.DB || !env.RATE_LIMIT_SALT || !env.SITE_ORIGIN || !env.TURNSTILE_SECRET || !env.TURNSTILE_SITE_KEY) throw new Error('Submission service configuration incomplete');
   return createService({
-    ...env, MODE: 'production',
+    ...env, MODE: 'production', defer: task => ctx.waitUntil(task),
     REVIEW_MODE: 'github_pr',
     ARCHIVE: env.GITHUB_TOKEN ? new GitHubArchive({ token: env.GITHUB_TOKEN, repository: env.GITHUB_REPOSITORY }) : null,
     authorizeAdmin: request => verifyAccess(request, env),
     verifyHuman: async token => {
       if (typeof token !== 'string' || !token || token.length > 2048) return false;
-      const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token }), redirect: 'error' });
+      const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token }), redirect: 'error', signal: AbortSignal.timeout(15000) });
       if (!response.ok) return false;
       const value = await response.json();
       return value.success === true && value.hostname === new URL(env.SITE_ORIGIN).hostname && value.action === 'submission';
@@ -37,11 +37,11 @@ function service(env) {
   });
 }
 export default {
-  async fetch(request, env) {
-    try { return await service(env).fetch(request); }
+  async fetch(request, env, ctx) {
+    try { return await service(env, ctx).fetch(request); }
     catch { return Response.json({ api_version: 1, error: { code: 'service_unconfigured', message: '上传服务尚未配置完成', retryable: true } }, { status: 503, headers: { 'Cache-Control': 'no-store' } }); }
   },
   async scheduled(_event, env, ctx) {
-    ctx.waitUntil(service(env).syncPending());
+    ctx.waitUntil(service(env, ctx).syncPending());
   }
 };

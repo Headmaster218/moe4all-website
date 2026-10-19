@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 import { createService } from './service.mjs';
 import { localDatabase } from './local-db.mjs';
-import { decodeSubmission, sha256, benchmarkRows } from '../community/submission-codec.mjs';
+import { decodeSubmission, sha256, benchmarkRows, MAX_ARMOR_BYTES } from '../community/submission-codec.mjs';
 import { benchmarkFixture, errorFixture, packFixture } from './fixtures.mjs';
 import { previewIndex } from './leaderboard-preview.mjs';
 import { indexArtifacts, writeIndexArtifacts } from '../scripts/build-leaderboard.mjs';
@@ -38,13 +38,13 @@ export async function startLocalServer({ directory, port = 8765, seed = true, re
   const archive = {
     mode: 'local',
     async process(row) {
-      const decoded = await decodeSubmission(encode(row.armor)), month = decoded.headers['created-at'].slice(0, 7);
-      const relative = `${decoded.kind === 'benchmark' ? 'benchmark-database' : 'error-database'}/v1/${month}/${decoded.id}.${decoded.kind === 'benchmark' ? 'm4b' : 'm4e'}`, target = path.join(resolved, 'archive', ...relative.split('/'));
+      const decoded = row.armor ? await decodeSubmission(encode(row.armor)) : null;
+      const relative = row.source_path || `${decoded.kind === 'benchmark' ? 'benchmark-database' : 'error-database'}/v1/${decoded.headers['created-at'].slice(0, 7)}/${decoded.id}.${decoded.kind === 'benchmark' ? 'm4b' : 'm4e'}`, target = path.join(resolved, 'archive', ...relative.split('/'));
       await fs.mkdir(path.dirname(target), { recursive: true });
-      try { await fs.writeFile(target, row.armor, { flag: 'wx' }); }
+      try { if (row.armor) await fs.writeFile(target, row.armor, { flag: 'wx' }); }
       catch (error) { if (error.code !== 'EEXIST') throw error; }
       if (await sha256(await fs.readFile(target)) !== row.file_sha256) throw new Error('Local archive content conflict');
-      return { state: reviewMode === 'github_pr' ? 'pending' : 'published', mode: 'local', ...(reviewMode === 'github_pr' ? {} : { commit: 'local:' + row.file_sha256 }), path: relative, file_sha256: row.file_sha256, public_url: null };
+      return { state: reviewMode === 'github_pr' ? 'pending' : 'published', verified: true, mode: 'local', ...(reviewMode === 'github_pr' ? {} : { commit: 'local:' + row.file_sha256 }), path: relative, file_sha256: row.file_sha256, public_url: null };
     },
     async verify(row) {
       const info = JSON.parse(row.archive_json || '{}');
@@ -70,7 +70,7 @@ export async function startLocalServer({ directory, port = 8765, seed = true, re
       }
       if (url.pathname.startsWith('/v1/')) {
         const chunks = []; let bytes = 0;
-        for await (const chunk of incoming) { bytes += chunk.length; if (bytes > 524288) { outgoing.writeHead(413, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); outgoing.end(JSON.stringify({ api_version: 1, error: { code: 'payload_too_large', message: '文件超过 512 KiB', retryable: false } })); return; } chunks.push(chunk); }
+        for await (const chunk of incoming) { bytes += chunk.length; if (bytes > MAX_ARMOR_BYTES) { outgoing.writeHead(413, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); outgoing.end(JSON.stringify({ api_version: 1, error: { code: 'payload_too_large', message: '文件超过 128 KiB', retryable: false } })); return; } chunks.push(chunk); }
         const method = incoming.method || 'GET';
         const request = new Request(url, { method, headers: incoming.headers, ...(chunks.length && !['GET', 'HEAD'].includes(method) ? { body: Buffer.concat(chunks) } : {}) });
         const response = await app.fetch(request);
@@ -97,7 +97,10 @@ export async function startLocalServer({ directory, port = 8765, seed = true, re
   try { await listen(port); }
   catch (error) { if (port && ['EADDRINUSE', 'EACCES'].includes(error.code)) await listen(0); else { db.close(); throw error; } }
   origin = `http://127.0.0.1:${server.address().port}`;
+  const jobs = new Set();
+  const defer = task => { jobs.add(task); task.finally(() => jobs.delete(task)).catch(() => {}); };
   app = createService({ DB: db, MODE: 'local', REVIEW_MODE: reviewMode, SITE_ORIGIN: origin, RATE_LIMIT_SALT: config.salt, ARCHIVE: archive,
+    defer,
     clientAddress: () => 'loopback',
     authorizeAdmin: async request => {
       const cookie = request.headers.get('cookie') || '';
@@ -125,7 +128,8 @@ export async function startLocalServer({ directory, port = 8765, seed = true, re
       await fs.writeFile(marker, 'Synthetic local fixtures only. Not measured data.\n', { flag: 'wx' });
     }
   }
-  return { origin, app, directory: resolved, close: async () => { await new Promise(resolve => server.close(resolve)); db.close(); } };
+  const retryTimer = setInterval(() => defer(app.syncPending()), 60000); retryTimer.unref();
+  return { origin, app, directory: resolved, close: async () => { clearInterval(retryTimer); await new Promise(resolve => server.close(resolve)); await Promise.allSettled([...jobs]); db.close(); } };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

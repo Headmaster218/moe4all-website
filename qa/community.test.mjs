@@ -344,13 +344,16 @@ test('public PR mode accepts both kinds, requires public error consent and never
   const api = createService(a.env);
   a.service.fetch = api.fetch;
   const submissions = [];
-  a.env.ARCHIVE.process = async row => { submissions.push(row); return { state: 'pending', mode: 'github', pr_number: 12, public_url: 'https://github.com/example/test/pull/12', file_sha256: row.file_sha256 }; };
+  a.env.ARCHIVE.process = async row => { submissions.push(row); return { state: 'pending', verified: true, path: row.source_path, mode: 'github', pr_number: 12, public_url: 'https://github.com/example/test/pull/12', file_sha256: row.file_sha256 }; };
   for (const armor of [bench, error]) {
     const s = await a.begin(armor);
     if (inspectHeaders(armor).kind === 'error') assert.equal((await a.call(`/upload-sessions/${s.session_id}/authorize`, 'POST', { consent: 'private_error', turnstile_token: 'test-human' }, s.browser)).status, 403);
     await a.authorize(s);
     const result = await a.upload(s); assert.equal(result.status, 202, JSON.stringify(result.value));
-    assert.equal(result.value.status, 'pending_review'); assert.match(result.value.public_url, /\/pull\/12$/);
+    assert.equal(result.value.status, 'forwarding'); assert.equal(result.value.public_url, null);
+    await api.syncPending();
+    const saved = await api.store.one('SELECT * FROM reports WHERE receipt_id=?', result.value.receipt_id);
+    assert.equal(saved.status, 'pending_review'); assert.match(saved.public_url, /\/pull\/12$/); assert.equal(saved.armor, null);
     assert.equal((await a.call(`/admin/reports/${result.value.receipt_id}/review`, 'POST', { action: 'approve', file_sha256: result.value.file_sha256 }, 'test-admin')).status, 404);
     assert.equal((await a.call('/benchmarks')).value.rows.length, 0);
   }
@@ -362,13 +365,16 @@ test('public PR mode preserves unconsented private reports and recovers after Gi
   const old = await a.begin(error); await a.authorize(old); const privateReport = (await a.upload(old)).value;
   const oldReady = await a.begin(await packFixture('error', errorFixture(5))); await a.authorize(oldReady);
   a.env.REVIEW_MODE = 'github_pr'; const api = createService(a.env); a.service.fetch = api.fetch;
+  let now = Date.now(); a.env.now = () => now;
   const sent = []; let fail = true, merged = false;
-  a.env.ARCHIVE.process = async row => { if (fail) throw new Error('GitHub unavailable'); sent.push(row); return { state: merged ? 'published' : 'pending', mode: 'github', commit: merged ? 'a'.repeat(40) : undefined, file_sha256: row.file_sha256, public_url: 'https://github.com/example/test/pull/1' }; };
+  a.env.ARCHIVE.process = async row => { if (fail) throw new Error('GitHub unavailable'); sent.push(row); return { state: merged ? 'published' : 'pending', verified: true, path: row.source_path, mode: 'github', commit: merged ? 'a'.repeat(40) : undefined, file_sha256: row.file_sha256, public_url: 'https://github.com/example/test/pull/1' }; };
   assert.equal((await a.upload(oldReady)).status, 403);
   const s = await a.begin(); await a.authorize(s); const received = await a.upload(s); assert.equal(received.status, 202); assert.equal(received.value.public_url, null);
-  fail = false; await api.syncPending(); assert.equal(sent.length, 1); assert.equal(sent[0].kind, 'benchmark');
+  await api.syncPending(); now += 31000; fail = false; await api.syncPending(); assert.equal(sent.length, 1); assert.equal(sent[0].kind, 'benchmark');
   assert.equal((await api.store.one('SELECT publication_consent FROM reports WHERE receipt_id=?', privateReport.receipt_id)).publication_consent, null);
-  merged = true; await api.syncPending(); assert.equal((await a.call('/benchmarks')).value.rows.length, 9);
+  merged = true; now += 900001; await api.syncPending();
+  assert.equal((await api.store.one('SELECT status FROM reports WHERE receipt_id=?', received.value.receipt_id)).status, 'published');
+  assert.equal((await a.call('/benchmarks')).value.rows.length, 0);
 });
 
 test('GitHub creates one public PR for either file kind and reuses it without writing main', async () => {
@@ -388,6 +394,7 @@ test('GitHub creates one public PR for either file kind and reuses it without wr
         creations++; assert.equal(body.base, 'main'); assert.equal(body.head, `community/${kind}/${fileSha}`); assert.match(body.body, /awaiting maintainer review/);
         pr = { number: 9, head: { sha: 'b'.repeat(40) }, state: 'open', merged: false, html_url: 'https://github.com/example/test/pull/9' }; return Response.json(pr);
       }
+      if (route === 'pulls/9') return Response.json(pr);
       if (route.startsWith('pulls/9/files?')) return Response.json([{ filename: path, status: 'added' }]);
       if (route === `contents/${path}` && options.method === 'PUT') { assert.equal(body.branch, `community/${kind}/${fileSha}`); source = body.content; return Response.json({}); }
       if (route.startsWith(`contents/${path}?ref=`)) {
@@ -398,6 +405,9 @@ test('GitHub creates one public PR for either file kind and reuses it without wr
     };
     const archive = new GitHubArchive({ token: 'test-only', repository: 'example/test', fetcher });
     assert.equal((await archive.process(row)).state, 'pending'); assert.equal((await archive.process(row)).state, 'pending'); assert.equal(creations, 1);
+    const verified = await archive.process(row);
+    assert.equal((await archive.process({ ...row, armor: null, report_created_at: decoded.headers['created-at'], source_path: path, archive_json: JSON.stringify(verified) })).state, 'pending');
+    assert.equal(creations, 1);
     assert.equal(Buffer.from(source, 'base64').toString(), armor);
   }
 });
@@ -405,12 +415,14 @@ test('GitHub creates one public PR for either file kind and reuses it without wr
 test('concurrent public PR synchronization uses a lease and never publishes before merge', async t => {
   const a = setup(); t.after(a.close); a.env.REVIEW_MODE = 'github_pr'; const api = createService(a.env); a.service.fetch = api.fetch;
   let count = 0, release; const gate = new Promise(resolve => { release = resolve; });
-  a.env.ARCHIVE.process = async row => { count++; await gate; return { state: 'pending', mode: 'github', file_sha256: row.file_sha256 }; };
+  a.env.ARCHIVE.process = async row => { count++; await gate; return { state: 'pending', verified: true, path: row.source_path, mode: 'github', file_sha256: row.file_sha256 }; };
   const s = await a.begin(); await a.authorize(s);
-  const first = a.upload(s);
-  while (!count) await new Promise(resolve => setTimeout(resolve, 1));
+  assert.equal((await a.upload(s)).status, 202);
+  const first = api.syncPending();
+  for (let i = 0; !count && i < 100; i++) await new Promise(resolve => setTimeout(resolve, 1));
+  assert.equal(count, 1);
   const second = a.upload(s);
-  assert.equal((await second).status, 200); release(); assert.equal((await first).status, 202); assert.equal(count, 1);
+  assert.equal((await second).status, 200); await api.syncPending(); release(); await first; assert.equal(count, 1);
   assert.equal((await a.call('/benchmarks')).value.rows.length, 0);
 });
 test('production community publishes an allowlisted static index, never local admin or fixtures', async () => {
