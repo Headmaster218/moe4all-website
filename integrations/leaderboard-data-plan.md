@@ -6,7 +6,7 @@
 
 原始报告经 PR 校验和人工审核后合入 `Headmaster218/MoE4All` 的 main。
 可信 main CI 从 `benchmark-database/v1/` 原件生成全量精简库，并提交到
-同仓库的 `benchmark-database/index/v1/`。网站直接读取 Git 数据，不查询
+同仓库 `benchmark-index` 数据分支的 `benchmark-database/index/v1/`。网站直接读取 Git 数据，不查询
 Cloudflare、不等待六小时、不因数据更新重新部署。
 
 ```text
@@ -26,7 +26,7 @@ Cloudflare 仍可承担上传中转和回执，但不参与精简库生成、存
 
 固定入口：
 
-`https://raw.githubusercontent.com/Headmaster218/MoE4All/main/benchmark-database/index/v1/manifest.json`
+`https://raw.githubusercontent.com/Headmaster218/MoE4All/benchmark-index/benchmark-database/index/v1/manifest.json`
 
 沿用现有精简索引 v1：报告、上下文、测量三张表，列式编码，无损保留原有字段。
 两种压缩包解码结果相同；浏览器优先 Brotli，不能使用时回退 gzip。
@@ -35,7 +35,7 @@ Cloudflare 仍可承担上传中转和回执，但不参与精简库生成、存
 manifest 的 `source.commit` 是最后修改性能原件的 commit；
 `package_commit` 是包含压缩包的不可变 Git commit，两者不能混用。
 CI 先提交压缩包，再提交引用它们的 manifest，同一次普通 push 发布。
-浏览器按 `package_commit` 读取压缩包，不追随 main 读取包体，避免更新期间混读。
+浏览器按 `package_commit` 读取压缩包，不追随移动分支读取包体，避免更新期间混读。
 最新树只保留当前包；旧 manifest 引用的历史包仍可从对应 commit 取得。
 
 ## CI
@@ -46,8 +46,8 @@ CI 先提交压缩包，再提交引用它们的 manifest，同一次普通 push
 
 每次从最新 main 的完整原件树重新校验和构建。相同输入不产生新提交。
 并发更新使用普通非强制 push；冲突后从最新 main 重建，不能覆盖新报告。
-失败保留上一已发布版本。仓库保护规则必须允许其机器人更新指定数据文件；
-不绕过保护、不新增跨仓库通知凭证。
+失败保留上一已发布版本。数据分支只保存当前 manifest、包体及属性文件；
+不向 main 推送生成提交，不改 main 的 PR 保护，不新增跨仓库通知凭证。
 
 网站退出旧快照生成与通知流程。网站 Pages 的产品版本同步可继续独立定时运行，
 不影响榜单新数据的可见性。

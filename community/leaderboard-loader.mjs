@@ -37,7 +37,7 @@ export async function loadLeaderboard(manifestURL, { repository = 'Headmaster218
     if (manifest.package_commit !== undefined) {
       const endpoint = new URL(url), prefix = `/${repository}/`;
       if (endpoint.origin !== 'https://raw.githubusercontent.com' || !endpoint.pathname.startsWith(prefix) ||
-          !/^(?:main|[a-f0-9]{40})\/benchmark-database\/index\/v1\/manifest\.json$/.test(endpoint.pathname.slice(prefix.length))) fail('排行榜 Git 数据地址无效');
+          !/^(?:benchmark-index|main|[a-f0-9]{40})\/benchmark-database\/index\/v1\/manifest\.json$/.test(endpoint.pathname.slice(prefix.length))) fail('排行榜 Git 数据地址无效');
       packageBase = `https://raw.githubusercontent.com/${repository}/${manifest.package_commit}/benchmark-database/index/v1/manifest.json`;
     }
     const formats = supportsBrotli() ? ['brotli', 'gzip'] : ['gzip']; let last;
