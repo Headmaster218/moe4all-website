@@ -6,7 +6,7 @@
 
 原始报告经 PR 校验和人工审核后合入 `Headmaster218/MoE4All` 的 main。
 可信 main CI 从 `benchmark-database/v1/` 原件生成全量精简库，并提交到
-同仓库 `benchmark-index` 数据分支的 `benchmark-database/index/v1/`。网站直接读取 Git 数据，不查询
+同仓库 main 的 `benchmark-database/index/v1/`。网站直接读取 Git 数据，不查询
 Cloudflare、不等待六小时、不因数据更新重新部署。
 
 ```text
@@ -26,7 +26,7 @@ Cloudflare 仍可承担上传中转和回执，但不参与精简库生成、存
 
 固定入口：
 
-`https://raw.githubusercontent.com/Headmaster218/MoE4All/benchmark-index/benchmark-database/index/v1/manifest.json`
+`https://raw.githubusercontent.com/Headmaster218/MoE4All/main/benchmark-database/index/v1/manifest.json`
 
 沿用现有精简索引 v1：报告、上下文、测量三张表，列式编码，无损保留原有字段。
 两种压缩包解码结果相同；浏览器优先 Brotli，不能使用时回退 gzip。
@@ -41,13 +41,17 @@ CI 先提交压缩包，再提交引用它们的 manifest，同一次普通 push
 ## CI
 
 引擎 `.github/workflows/benchmark-index.yml` 在 main 的原件或生成器变化后运行，
-并提供手动初始化、重试入口。不在 PR 上写入公开库；报告 PR 仍只能新增一份原件，
+并提供手动初始化、重试入口。只有原件合入 main 后才生成索引；报告 PR 仍只能新增一份原件，
 不得夹带索引、脚本或工作流。生成提交不触发自身循环。
 
 每次从最新 main 的完整原件树重新校验和构建。相同输入不产生新提交。
 并发更新使用普通非强制 push；冲突后从最新 main 重建，不能覆盖新报告。
-失败保留上一已发布版本。数据分支只保存当前 manifest、包体及属性文件；
-不向 main 推送生成提交，不改 main 的 PR 保护，不新增跨仓库通知凭证。
+失败保留上一已发布版本。原件只需一次人工审核；CI 在内部自动创建并合并
+仅含精简索引文件的生成物 PR，不让维护者再审批一次，不自动审批或合并原始报告。
+发布任务先核对机器人身份、仓库、head SHA、文件集合和 main 是否前进，再合并并复核生成物。
+机器 PR 保留合并提交以维持 `package_commit` 可达，临时发布分支完成后删除。
+仓库需允许 Actions 创建 PR；默认 token 权限仍为只读，仅可信 main 发布任务声明写权限。
+不改 main 的 PR 保护，不新增跨仓库通知凭证；网站仍固定读取 main。
 
 网站退出旧快照生成与通知流程。网站 Pages 的产品版本同步可继续独立定时运行，
 不影响榜单新数据的可见性。

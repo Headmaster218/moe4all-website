@@ -26,11 +26,11 @@ test('engine-generated Git index is decoded and displayed by the actual website 
   const manifest = JSON.parse(await fs.readFile(path.join(repo, 'benchmark-database/index/v1/manifest.json'), 'utf8'));
   const prefix = 'https://raw.githubusercontent.com/Headmaster218/MoE4All/';
   const requests = [];
-  const result = await loadLeaderboard(prefix + 'benchmark-index/benchmark-database/index/v1/manifest.json', {
+  const result = await loadLeaderboard(prefix + 'main/benchmark-database/index/v1/manifest.json', {
     supportsBrotli: () => false, cacheStorage: undefined,
     fetcher: async url => {
       requests.push(url);
-      if (url === prefix + 'benchmark-index/benchmark-database/index/v1/manifest.json') return Response.json(manifest);
+      if (url === prefix + 'main/benchmark-database/index/v1/manifest.json') return Response.json(manifest);
       assert.ok(url.startsWith(prefix + manifest.package_commit + '/benchmark-database/index/v1/'));
       return new Response(git('show', manifest.package_commit + ':benchmark-database/index/v1/' + url.split('/').at(-1)));
     }

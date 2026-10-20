@@ -44,7 +44,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await context.route('https://raw.githubusercontent.com/**', async route => {
       const url = route.request().url(); dataRequests.push(url);
       const base = 'https://raw.githubusercontent.com/Headmaster218/MoE4All/';
-      if (url === base + 'benchmark-index/benchmark-database/index/v1/manifest.json') {
+      if (url === base + 'main/benchmark-database/index/v1/manifest.json') {
         await route.fulfill({ status: offline ? 503 : 200, contentType: 'application/json', body: JSON.stringify(artifacts.manifest), headers: { 'Access-Control-Allow-Origin': '*' } }); return;
       }
       assert.ok(url.startsWith(base + artifacts.manifest.package_commit + '/benchmark-database/index/v1/'));

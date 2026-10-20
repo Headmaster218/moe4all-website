@@ -183,7 +183,7 @@ test('one full index supports GPU, memory and arbitrary context combinations wit
 
 test('production reads the engine Git index and website deployment no longer builds a data snapshot', async () => {
   const config = await fs.readFile(new URL('../community/config.js', import.meta.url), 'utf8');
-  assert.match(config, /https:\/\/raw\.githubusercontent\.com\/Headmaster218\/MoE4All\/benchmark-index\/benchmark-database\/index\/v1\/manifest\.json/);
+  assert.match(config, /https:\/\/raw\.githubusercontent\.com\/Headmaster218\/MoE4All\/main\/benchmark-database\/index\/v1\/manifest\.json/);
   const build = await fs.readFile(new URL('../scripts/build-site.mjs', import.meta.url), 'utf8');
   assert.doesNotMatch(build, /readSnapshot|writeIndexArtifacts|community\/data/);
   await assert.rejects(fs.access(new URL('../.github/workflows/leaderboard.yml', import.meta.url)));
@@ -198,13 +198,13 @@ test('production reads the engine Git index and website deployment no longer bui
 test('fixed Git manifest resolves packages at its immutable publication commit, never the moving branch', async () => {
   const a = build(), commit = 'c'.repeat(40), calls = [];
   a.manifest.package_commit = commit;
-  const url = 'https://raw.githubusercontent.com/Headmaster218/MoE4All/benchmark-index/benchmark-database/index/v1/manifest.json';
+  const url = 'https://raw.githubusercontent.com/Headmaster218/MoE4All/main/benchmark-database/index/v1/manifest.json';
   const cache = new MemoryCache();
   const options = { cacheStorage: { open: async () => cache }, supportsBrotli: () => false,
     fetcher: async target => {
       calls.push(target);
       if (target === url) return Response.json(a.manifest);
-      assert.equal(target, url.replace('/benchmark-index/', `/${commit}/`).replace('manifest.json', a.manifest.packages.gzip.url));
+      assert.equal(target, url.replace('/main/', `/${commit}/`).replace('manifest.json', a.manifest.packages.gzip.url));
       return new Response(a.packages.gzip.bytes);
     } };
   assert.equal((await loadLeaderboard(url, options)).index.reports.length, 1);
