@@ -4,10 +4,11 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+import { gunzipSync } from 'node:zlib';
 import { startLocalServer } from '../backend/local-server.mjs';
 import { packFixture } from '../backend/fixtures.mjs';
 import { decodeSubmission } from '../community/submission-codec.mjs';
-import { buildFromGit } from '../scripts/build-leaderboard.mjs';
 import { indexRows, decodeIndex } from '../community/leaderboard-model.mjs';
 const exec = promisify(execFile), require = createRequire(import.meta.url);
 const { chromium } = require(process.env.MOE4ALL_BROWSER_MODULES ? path.join(process.env.MOE4ALL_BROWSER_MODULES, 'playwright') : 'playwright');
@@ -94,8 +95,11 @@ try {
   await git(['init', '--initial-branch=main']);
   for (const [kind, file] of [['benchmark', benchmarkFile], ['error', errorFile]]) { const target = path.join(archive, kind + '-database', 'v1', '2026-10', path.basename(file)); await fs.mkdir(path.dirname(target), { recursive: true }); await fs.copyFile(path.join(clientDir, kind + '-database', 'v1', '2026-10', path.basename(file)), target); }
   await git(['add', '.']); await git(['commit', '-m', 'fixture: reviewed reports']);
-  const artifacts = await buildFromGit({ directory: archive, python: process.env.MOE4ALL_PYTHON, decoder: path.join(engine, 'scripts/moe4all_submission.py'), output: path.join(runtime, 'compact-index') });
-  const index = decodeIndex(JSON.parse(artifacts.json)); assert.equal(index.reports.length, 1); assert.equal(indexRows(index).length, 1);
+  const { buildIndex } = await import(pathToFileURL(path.join(engine, 'scripts/build-benchmark-index.mjs')));
+  const compactDirectory = path.join(runtime, 'compact-index');
+  const manifest = await buildIndex({ directory: archive, python: process.env.MOE4ALL_PYTHON, output: compactDirectory });
+  const index = decodeIndex(JSON.parse(gunzipSync(await fs.readFile(path.join(compactDirectory, manifest.packages.gzip.url)))));
+  assert.equal(index.reports.length, 1); assert.equal(indexRows(index).length, 1);
   const ranked = indexRows(index)[0]; assert.equal(ranked.pcie_generation, 4); assert.equal(ranked.pcie_width, 8); assert.equal(ranked.storage_bus, 'NVMe');
   checks.push('Immutable Git fixture with both report kinds generates one ranked benchmark through the independent Python decoder; errors remain archived but unranked');
   assert.deepEqual(pageErrors, []); assert.ok(external.every(request => request.origin === 'https://api.github.com' && request.method === 'GET'));

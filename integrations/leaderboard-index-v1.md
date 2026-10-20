@@ -1,6 +1,6 @@
 # 排行榜精简总库字段清单
 
-日期：2026-10-19。本文描述本地已实现的全量静态索引。字段定义及校验以 `community/leaderboard-model.mjs` 为准；生成器为 `scripts/build-leaderboard.mjs`，网页读取器为 `community/leaderboard-loader.mjs`。尚未 push 或执行线上 CI。数据链路与发布边界见 [排行榜数据方案](leaderboard-data-plan.md)。
+日期：2026-10-21。本文描述全量静态索引。字段定义及校验以 `community/leaderboard-model.mjs` 为准；生产生成器位于 MoE4All 主仓的 `scripts/build-benchmark-index.mjs`，本仓 `scripts/build-leaderboard.mjs` 仅用于本地预览。网页读取器为 `community/leaderboard-loader.mjs`。数据链路与发布边界见 [排行榜数据方案](leaderboard-data-plan.md)。
 
 ## 目标与组织
 

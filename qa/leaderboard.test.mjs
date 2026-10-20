@@ -190,6 +190,9 @@ test('production reads the engine Git index and website deployment no longer bui
   const pages = await fs.readFile(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
   assert.doesNotMatch(pages, /leaderboard-data-ready|benchmark-data/);
   assert.match(pages, /contains\(fromJSON/);
+  const integration = await fs.readFile(new URL('./verify-submission-integration.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(integration, /buildFromGit/);
+  assert.match(integration, /scripts\/build-benchmark-index\.mjs/);
 });
 
 test('fixed Git manifest resolves packages at its immutable publication commit, never the moving branch', async () => {
