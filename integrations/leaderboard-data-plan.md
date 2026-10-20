@@ -34,7 +34,7 @@ Cloudflare 仍可承担上传中转和回执，但不参与精简库生成、存
 
 manifest 的 `source.commit` 是最后修改性能原件的 commit；
 `package_commit` 是包含压缩包的不可变 Git commit，两者不能混用。
-CI 先提交压缩包，再提交引用它们的 manifest，同一次普通 push 发布。
+CI 先提交压缩包，再提交引用它们的 manifest，通过同一次索引生成物合并发布。
 浏览器按 `package_commit` 读取压缩包，不追随移动分支读取包体，避免更新期间混读。
 最新树只保留当前包；旧 manifest 引用的历史包仍可从对应 commit 取得。
 
