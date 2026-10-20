@@ -442,10 +442,10 @@ test('concurrent public PR synchronization uses a lease and never publishes befo
   assert.equal((await second).status, 200); await api.syncPending(); release(); await first; assert.equal(count, 1);
   assert.equal((await a.call('/benchmarks')).value.rows.length, 0);
 });
-test('production community publishes an allowlisted static index, never local admin or fixtures', async () => {
+test('production community publishes only allowlisted UI, never local admin, fixtures or a stale data snapshot', async () => {
   const build = await fs.readFile(new URL('../scripts/build-site.mjs', import.meta.url), 'utf8');
   assert.match(build, /const communityFiles =/);
-  assert.match(build, /readSnapshot/);
+  assert.doesNotMatch(build, /readSnapshot|writeIndexArtifacts/);
   assert.doesNotMatch(build, /'admin.html'|'preview-data.mjs'|'fixtures.mjs'/);
   assert.doesNotMatch(await fs.readFile(new URL('../community/app.mjs', import.meta.url), 'utf8'), /name="decode"|name="prefill"|analytics\.js|cloudflareinsights/);
 });

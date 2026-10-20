@@ -38,7 +38,7 @@ let confirmation = fragment.has('session') && fragment.has('authorize') ? { id: 
 const confirmationSaved = !confirmation || pendingUploads.write('confirmation', confirmation);
 if (receiptTransfer || receiptTransferError) history.replaceState(null, '', location.pathname + location.search + '#receipts');
 else if (confirmation) history.replaceState(null, '', location.pathname + location.search);
-const state = { page: receiptTransfer || receiptTransferError ? 'receipts' : confirmation ? 'confirmation' : location.hash === '#receipts' ? 'receipts' : document.body.dataset.page, index: null, dataInfo: null, rows: [], bounds: null, filters: blankFilters(), filtersOpen: true, metric: 'decode', selected: '', compare: [], pageNumber: 1, uploadKind: new URLSearchParams(location.search).get('kind') === 'error' ? 'error' : 'benchmark', file: null, decoded: null, fileError: '', header: null, processing: false, uploading: false, uploaded: null, uploadSession: null, adminTab: 'benchmark', overview: null, confirmation: null, confirmDone: null };
+const state = { page: receiptTransfer || receiptTransferError ? 'receipts' : confirmation ? 'confirmation' : location.hash === '#receipts' ? 'receipts' : document.body.dataset.page, index: null, dataInfo: null, rows: [], bounds: null, filters: blankFilters(), filtersOpen: false, metric: 'decode', selected: '', compare: [], pageNumber: 1, uploadKind: new URLSearchParams(location.search).get('kind') === 'error' ? 'error' : 'benchmark', file: null, decoded: null, fileError: '', header: null, processing: false, uploading: false, uploaded: null, uploadSession: null, adminTab: 'benchmark', overview: null, confirmation: null, confirmDone: null };
 let toastTimer, receiptTimer, receiptCursor = 0, fileSequence = 0;
 Object.assign(state, { uploadSession: pendingUploads.read('upload'), uploadError: null, uploadProgress: '', humanToken: '', confirmationBusy: false, resumeWarning: confirmationSaved ? '' : '浏览器无法保存恢复信息，请勿刷新；CMD 中的原文件仍保留。' });
 const verifier = humanVerifier(window, document, { token: value => { state.humanToken = value; if (value && state.uploadError?.stage === '人机验证') state.uploadError = null; showUploadFeedback(); syncButtons(); }, failure: message => uploadFailure(new Error(message), '人机验证') });
@@ -100,7 +100,7 @@ function inspector(row) {
 function table(rows) {
   state.pageNumber = Math.max(1, Math.min(state.pageNumber, Math.ceil(rows.length / 8) || 1));
   const offset = (state.pageNumber - 1) * 8, part = rows.slice(offset, offset + 8);
-  const body = part.map((r, i) => `<tr class="${state.selected === r.id ? 'selected' : ''}" data-row="${escape(r.id)}">
+  const body = part.map((r, i) => `<tr class="${state.selected === r.id ? 'selected' : ''}" data-row="${escape(r.id)}" tabindex="0" aria-selected="${state.selected === r.id}">
     <td><input type="checkbox" data-compare="${escape(r.id)}" aria-label="对比 ${escape(r.gpu)}" ${state.compare.includes(r.id) ? 'checked' : ''}></td>
     <td class="rank">${String(offset + i + 1).padStart(2, '0')}</td>
     <td><button class="sort device" data-action="sample" data-id="${escape(r.id)}">${escape(r.gpu)}</button><div class="device-sub">${escape(r.backend || '未提供 Backend')} · ${escape(r.os || '未提供系统')} · v${escape(r.engine)}<br>${escape(modelLabel(r.model))} · ${contextLabel(r.context)} / ${slotsLabel(r)} · MTP ${flag(r.mtp)}<br>${escape(strategyNames[strategyOf(r)])}${r.profile === 'manual' ? ' · 手动实测' : ''}</div></td>
@@ -119,6 +119,19 @@ function renderBenchmarks() {
   const status = `<div class="dataset-status">${tag(preview ? '本地演示数据' : info?.stale ? '离线缓存' : 'Git 数据快照', preview || info?.stale ? 'amber' : 'mint')}<span>${state.index?.reports.length ?? 0} 份报告 · ${escape(info?.manifest.version.slice(0, 10) || '')}</span>${info?.stale ? '<span>新版本暂时不可用，当前为已校验的缓存版本</span>' : ''}</div>`;
   $('#main').innerHTML = heading('性能排行榜', 'BENCHMARK EXPLORER', '把闲置的算力，变成下一份参考答案。', button('export-csv', '导出表格', 'download') + '<a class="button primary" href="upload.html">' + icon('plus') + '提交实测</a>') + status + `<div class="band">${stat('筛选结果', String(rows.length).padStart(2, '0'), 'RUNS', `共 ${state.rows.length} 条${state.metric === 'decode' ? ' Decode' : ' Prefill'}记录`)}${stat('覆盖设备', String(new Set(rows.map(r => r.gpu)).size).padStart(2, '0'), 'DEVICES', 'GPU 与统一内存设备')}${stat('最高 ' + (state.metric === 'decode' ? 'Decode' : 'Prefill'), fmt(peak?.[state.metric]), 'tok/s', state.metric === 'decode' ? '当前筛选 · 并发总吞吐量' : '当前筛选 · 每上下文一份实测')}${stat('配置策略', strategies.length === 1 ? strategyNames[strategies[0]] : '全部策略', '', '自动激进 / 自动保守 / 手动配置')}</div>${filterPanel()}<div class="workspace"><section><div class="cohort"><div class="eyebrow">RESULTS / 筛选结果</div><h2>${escape(title)}</h2><div class="tags">${tag(`${rows.length} 条记录`, 'mint')}${tag(state.metric === 'decode' ? '按 Decode 排序' : '按 Prefill 排序')}${tag(state.metric === 'decode' ? '并发总吞吐量 · tok/s' : 'Prefill · tok/s')}</div></div><div id="run-table">${table(rows)}</div></section><aside class="inspector" id="inspector">${inspector(rows.find(r => r.id === state.selected))}</aside></div>`;
   renderTray(); icons();
+}
+function selectRow(id) {
+  const row = state.rows.find(r => r.id === id);
+  if (!row) return null;
+  state.selected = id;
+  for (const element of document.querySelectorAll('[data-row]')) {
+    const selected = element.dataset.row === id;
+    element.classList.toggle('selected', selected);
+    element.setAttribute('aria-selected', String(selected));
+  }
+  if ($('#inspector')) $('#inspector').innerHTML = inspector(row);
+  icons();
+  return row;
 }
 const modelLabel = value => value.replace(/\.gguf$/i, '').replace(/-A3B-I-Balanced$/, ' · I-Balanced').replace(/-4\.27bpw$/, ' · 4.27 bpw');
 function facets() {
@@ -475,6 +488,8 @@ document.addEventListener('input', event => {
   }
 });
 document.addEventListener('click', async event => {
+  const record = event.target.closest('[data-row]');
+  if (record && !event.target.closest('button, input, a, select, textarea, label')) { selectRow(record.dataset.row); return; }
   const target = event.target.closest('[data-action]'); if (!target || target.disabled) return;
   const action = target.dataset.action, id = target.dataset.id;
   try {
@@ -488,7 +503,7 @@ document.addEventListener('click', async event => {
     if (action === 'close') { $('#detail-dialog').close(); return; }
     if (action === 'sort') { if (state.metric !== target.dataset.metric) selectMetric(target.dataset.metric); renderBenchmarks(); }
     if (action === 'prev' || action === 'next') { state.pageNumber += action === 'prev' ? -1 : 1; renderBenchmarks(); }
-    if (action === 'sample') { const row = state.rows.find(r => r.id === id); state.selected = id; if ($('#inspector')) $('#inspector').innerHTML = inspector(row); openDialog(dialogHeading(row.gpu, 'BENCHMARK SAMPLE') + inspector(row)); }
+    if (action === 'sample') { const row = selectRow(id); if (row) openDialog(dialogHeading(row.gpu, 'BENCHMARK SAMPLE') + inspector(row)); }
     if (action === 'clear-compare') { state.compare = []; renderBenchmarks(); }
     if (action === 'compare') openDialog(dialogHeading('同条件样本对比', 'SIDE BY SIDE') + `<div class="compare-columns" style="--count:${state.compare.length}">${state.compare.map(id => state.rows.find(r => r.id === id)).map(row => `<section><h3>${escape(row.gpu)}</h3><div class="inspect-score">${fmt(row[state.metric])}<small>tok/s</small></div>${spark(row)}${detailList(row)}</section>`).join('')}</div>`);
     if (action === 'export-csv') download('moe4all-public-benchmarks.csv', csv(activeRows()), 'text/csv; charset=utf-8');
@@ -515,6 +530,11 @@ document.addEventListener('click', async event => {
     if (action === 'save-group') { await api(`/admin/groups/${state.group.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: $('#group-status').value, resolution_version: $('#resolution-version').value }) }); $('#detail-dialog').close(); await loadAdmin(); }
     if (action === 'move-report' || action === 'split-report') { const group = action === 'move-report' ? $('#target-group').value : null; if (action === 'move-report' && !group) throw new Error('请先选择目标分组'); await post('/admin/groups/move', { receipt_id: state.review.receipt_id, group_id: group }); $('#detail-dialog').close(); await loadAdmin(); }
   } catch (error) { toast(error.message); target.disabled = false; }
+});
+document.addEventListener('keydown', event => {
+  if (event.target.matches('[data-row]') && ['Enter', ' '].includes(event.key)) {
+    event.preventDefault(); selectRow(event.target.dataset.row);
+  }
 });
 window.addEventListener('hashchange', () => {
   const incoming = new URLSearchParams(location.hash.slice(1));
@@ -550,9 +570,6 @@ else {
     const result = await loadLeaderboard(new URL(config.leaderboardManifest || 'data/manifest.json', location.href), { repository: config.repository, preview });
     state.index = result.index; state.dataInfo = result;
     selectMetric(indexRows(state.index).length ? 'decode' : 'prefill');
-    state.filters.model = state.rows.length ? [state.rows.find(r => r.model.includes('35B'))?.model || state.rows[0].model] : [];
-    if (state.rows.some(r => r.slots === 1)) state.filters.slots = ['1'];
-    if (state.rows.some(r => r.mtp === false)) state.filters.mtp = ['false'];
     renderBenchmarks();
   }
   catch (error) { $('#main').innerHTML = empty('排行榜暂时无法加载', escape(error.message)) + '<div class="actions"><button class="button" data-action="retry-index">' + icon('history') + '重试</button></div>'; icons(); }

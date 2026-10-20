@@ -7,8 +7,7 @@
     "community:dev": "node backend/local-server.mjs",
     "community:test": "node --test qa/community.test.mjs qa/submission-relay.test.mjs qa/submission-api-doc.test.mjs",
     "community:integration": "node qa/verify-submission-integration.mjs",
-    "community:codec": "node scripts/build-submission-codec.mjs",
-    "leaderboard:build": "node scripts/build-leaderboard.mjs"
+    "community:codec": "node scripts/build-submission-codec.mjs"
   },
   "devDependencies": {
     "acorn": "8.15.0",

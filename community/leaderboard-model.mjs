@@ -104,6 +104,7 @@ export function validSource(source) { return object(source) && /^[\w.-]+\/[\w.-]
 export function validateManifest(m, { repository = 'Headmaster218/MoE4All', preview = false } = {}) {
   if (!object(m) || m.schema !== INDEX_SCHEMA || !/^[a-f0-9]{64}$/.test(m.version) || m.decoded_sha256 !== m.version || !['production', 'preview'].includes(m.mode) || (m.mode === 'preview' && !preview)) fail();
   if (m.source !== null && (!validSource(m.source) || m.source.repository !== repository)) fail();
+  if (m.package_commit !== undefined && (typeof m.package_commit !== 'string' || !/^[a-f0-9]{40}$/.test(m.package_commit))) fail();
   if (!Number.isSafeInteger(m.decoded_bytes) || m.decoded_bytes < 1 || m.decoded_bytes > INDEX_LIMITS.decodedBytes || !object(m.counts)) fail();
   if (Object.keys(m.counts).sort().join(',') !== 'contexts,measurements,reports') fail();
   for (const key of ['reports', 'contexts', 'measurements']) if (!Number.isSafeInteger(m.counts[key]) || m.counts[key] < 0 || m.counts[key] > INDEX_LIMITS[key]) fail();

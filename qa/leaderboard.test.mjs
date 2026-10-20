@@ -6,7 +6,7 @@ import os from 'node:os';
 import { gunzipSync, brotliDecompressSync } from 'node:zlib';
 import { benchmarkFixture, packFixture } from '../backend/fixtures.mjs';
 import { FIELDS, INDEX_LIMITS, assembleIndex, encodeIndex, decodeIndex, validateIndex, validateManifest, indexRows, provenanceLinks } from '../community/leaderboard-model.mjs';
-import { indexArtifacts, artifactsFromIndex, writeIndexArtifacts, readSnapshot, buildFromGit } from '../scripts/build-leaderboard.mjs';
+import { indexArtifacts, artifactsFromIndex, writeIndexArtifacts } from '../scripts/build-leaderboard.mjs';
 import { loadLeaderboard } from '../community/leaderboard-loader.mjs';
 import { filterRows, rangeBounds } from '../community/ui-model.mjs';
 
@@ -101,37 +101,12 @@ test('Brotli and gzip resources decode to exactly the same content and validated
   }
 });
 
-test('artifact writes are idempotent and snapshots cannot turn preview data into production', async t => {
+test('local preview artifact writes are idempotent and reject conflicting packages', async t => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'leaderboard-')); t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const a = build(); await writeIndexArtifacts(dir, a); await writeIndexArtifacts(dir, a);
   assert.equal((await fs.readdir(dir)).length, 3);
-  const filename = path.join(dir, 'snapshot.json');
-  await fs.writeFile(filename, JSON.stringify({ generated_at: a.manifest.generated_at, index: encodeIndex(a.index) }));
-  assert.equal((await readSnapshot(filename)).manifest.version, a.manifest.version);
-  const preview = assembleIndex([{ ...entry(0), demo: true }], { mode: 'preview' });
-  await fs.writeFile(filename, JSON.stringify({ generated_at: a.manifest.generated_at, index: encodeIndex(preview) }));
-  await assert.rejects(readSnapshot(filename));
   await fs.writeFile(path.join(dir, a.manifest.packages.gzip.url), 'corrupt');
   await assert.rejects(writeIndexArtifacts(dir, a));
-});
-
-test('Git generator reads immutable .m4b originals, verifies path month/identity and never silently drops legacy JSON', async () => {
-  const p = benchmarkFixture(0), armor = Buffer.from(await packFixture('benchmark', p));
-  let tree = `benchmark-database/v1/2026-10/${p.id}.m4b\0`, shown = 0;
-  const gitCommand = args => {
-    if (args[0] === 'rev-parse') return 'b'.repeat(40);
-    if (args[0] === 'log') return source.commit;
-    if (args[0] === 'ls-tree') { assert.equal(args[4], source.commit); return tree; }
-    if (args[0] === 'show' && args[1] === '-s') return options.generatedAt;
-    if (args[0] === 'show') { shown++; assert.ok(args[1].startsWith(source.commit + ':')); return armor; }
-    throw new Error('Unexpected Git command');
-  };
-  const args = { directory: path.resolve('.'), gitCommand };
-  if (process.env.MOE4ALL_INDEPENDENT_DECODER) Object.assign(args, { decoder: process.env.MOE4ALL_INDEPENDENT_DECODER, python: process.env.MOE4ALL_PYTHON || 'python' });
-  assert.equal((await buildFromGit(args)).index.reports.length, 1); assert.equal(shown, 1);
-  for (const bad of [`benchmark-database/v1/2026-09/${p.id}.m4b\0`, 'benchmark-database/v1/2026-10/other.m4b\0', 'benchmark-database/v1/old.json\0', tree + tree]) {
-    tree = bad; await assert.rejects(buildFromGit(args));
-  }
 });
 
 class MemoryCache {
@@ -206,14 +181,42 @@ test('one full index supports GPU, memory and arbitrary context combinations wit
   assert.equal(found.length, 2); assert.ok(found.every(r => r.context === 30720));
 });
 
-test('static CI refresh dispatch is distinct from release events and source snapshot has no fictional reports', async () => {
-  const refresh = await fs.readFile(new URL('../.github/workflows/leaderboard.yml', import.meta.url), 'utf8');
-  assert.match(refresh, /scripts\/build-leaderboard.mjs/); assert.match(refresh, /--python python3/);
-  assert.match(refresh, /git add -- content\/leaderboard\/snapshot.json/); assert.match(refresh, /leaderboard-data-ready/);
-  assert.doesNotMatch(refresh, /git push.*--force/);
+test('production reads the engine Git index and website deployment no longer builds a data snapshot', async () => {
+  const config = await fs.readFile(new URL('../community/config.js', import.meta.url), 'utf8');
+  assert.match(config, /https:\/\/raw\.githubusercontent\.com\/Headmaster218\/MoE4All\/main\/benchmark-database\/index\/v1\/manifest\.json/);
+  const build = await fs.readFile(new URL('../scripts/build-site.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(build, /readSnapshot|writeIndexArtifacts|community\/data/);
+  await assert.rejects(fs.access(new URL('../.github/workflows/leaderboard.yml', import.meta.url)));
   const pages = await fs.readFile(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8');
-  assert.match(pages, /types:.*leaderboard-data-ready/);
+  assert.doesNotMatch(pages, /leaderboard-data-ready|benchmark-data/);
   assert.match(pages, /contains\(fromJSON/);
-  const snapshot = await readSnapshot(new URL('../content/leaderboard/snapshot.json', import.meta.url));
-  assert.ok(snapshot.index.reports.every(r => !r.demo));
+});
+
+test('fixed Git manifest resolves packages at its immutable publication commit, never the moving branch', async () => {
+  const a = build(), commit = 'c'.repeat(40), calls = [];
+  a.manifest.package_commit = commit;
+  const url = 'https://raw.githubusercontent.com/Headmaster218/MoE4All/main/benchmark-database/index/v1/manifest.json';
+  const cache = new MemoryCache();
+  const options = { cacheStorage: { open: async () => cache }, supportsBrotli: () => false,
+    fetcher: async target => {
+      calls.push(target);
+      if (target === url) return Response.json(a.manifest);
+      assert.equal(target, url.replace('/main/', `/${commit}/`).replace('manifest.json', a.manifest.packages.gzip.url));
+      return new Response(a.packages.gzip.bytes);
+    } };
+  assert.equal((await loadLeaderboard(url, options)).index.reports.length, 1);
+  assert.equal((await loadLeaderboard(url, options)).cacheHit, true);
+  assert.equal(calls.length, 3);
+  await assert.rejects(loadLeaderboard(url.replace('/Headmaster218/MoE4All/', '/attacker/repo/'), options));
+  const bad = clone(a.manifest); bad.package_commit = '../main';
+  assert.throws(() => validateManifest(bad));
+});
+
+test('default explorer is unfiltered and table selection is independent of opening a dialog', async () => {
+  const app = await fs.readFile(new URL('../community/app.mjs', import.meta.url), 'utf8');
+  assert.match(app, /filters: blankFilters\(\), filtersOpen: false/);
+  assert.doesNotMatch(app.slice(app.lastIndexOf('const result = await loadLeaderboard')), /state\.filters\.(model|slots|mtp)\s*=/);
+  assert.match(app, /record\.dataset\.row/);
+  assert.match(app, /function selectRow\(id\)/);
+  assert.match(app, /event\.target\.matches\('\[data-row\]'\)/);
 });

@@ -33,10 +33,17 @@ export async function loadLeaderboard(manifestURL, { repository = 'Headmaster218
     return validateManifest(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)), { repository, preview });
   }
   async function readPackage(manifest) {
+    let packageBase = url;
+    if (manifest.package_commit !== undefined) {
+      const endpoint = new URL(url), prefix = `/${repository}/`;
+      if (endpoint.origin !== 'https://raw.githubusercontent.com' || !endpoint.pathname.startsWith(prefix) ||
+          !/^(?:main|[a-f0-9]{40})\/benchmark-database\/index\/v1\/manifest\.json$/.test(endpoint.pathname.slice(prefix.length))) fail('排行榜 Git 数据地址无效');
+      packageBase = `https://raw.githubusercontent.com/${repository}/${manifest.package_commit}/benchmark-database/index/v1/manifest.json`;
+    }
     const formats = supportsBrotli() ? ['brotli', 'gzip'] : ['gzip']; let last;
     for (const format of formats) {
       try {
-        const p = manifest.packages[format], packageURL = new URL(p.url, url).href;
+        const p = manifest.packages[format], packageURL = new URL(p.url, packageBase).href;
         let bytes, cached = await cache?.match(packageURL).catch(() => null), cacheHit = false;
         if (cached) {
           try { bytes = await bounded(cached, p.bytes); if (bytes.length !== p.bytes || await digest(bytes) !== p.sha256) throw new Error('缓存校验失败'); cacheHit = true; }

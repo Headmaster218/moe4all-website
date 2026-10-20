@@ -2,7 +2,6 @@ import { readFile, writeFile, mkdir, cp } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { optimizeSite } from './optimize-site.mjs';
-import { readSnapshot, writeIndexArtifacts } from './build-leaderboard.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const releases = JSON.parse(await readFile(path.join(root, 'content/releases.json'), 'utf8'));
@@ -34,9 +33,6 @@ if (process.argv.includes('--preview')) {
     await mkdir(path.dirname(path.join(destination, 'community', file)), { recursive: true });
     await cp(path.join(root, 'community', file), path.join(destination, 'community', file));
   }
-  const leaderboard = await readSnapshot(path.join(root, 'content/leaderboard/snapshot.json'));
-  if (leaderboard.index.source && leaderboard.index.source.repository !== site.engineRepository) throw new Error('Unexpected leaderboard source repository');
-  await writeIndexArtifacts(path.join(destination, 'community/data'), leaderboard);
   await cp(path.join(root, 'assets'), path.join(destination, 'assets'), { recursive: true });
   await writeFile(path.join(destination, 'site-data.js'), data);
   const icons = await optimizeSite(root, destination, [...files.filter(file => /\.(?:js|css)$/.test(file)), 'site-data.js', ...communityFiles.filter(file => /\.(?:mjs|js|css)$/.test(file)).map(file => 'community/' + file)], { community: true });

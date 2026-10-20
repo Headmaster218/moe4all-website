@@ -5,7 +5,7 @@ on:
     branches: [main]
   workflow_dispatch:
   repository_dispatch:
-    types: [engine-release, agent-release, product-release, leaderboard-data-ready]
+    types: [engine-release, agent-release, product-release]
   schedule:
     - cron: '17 */6 * * *'
 

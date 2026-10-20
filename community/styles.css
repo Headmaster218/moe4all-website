@@ -76,4 +76,5 @@ body.modal-open{overflow:hidden}
 .upload-failure h2{font-size:20px;color:#ffc1c1;margin:0 0 12px}
 .upload-failure p{line-height:1.7;margin:8px 0;color:#f2dede}
 .upload-failure .actions{margin-top:16px}
+.data-table tr[data-row]{cursor:pointer}.data-table tr[data-row]:focus-visible{outline:2px solid var(--mint);outline-offset:-2px}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
