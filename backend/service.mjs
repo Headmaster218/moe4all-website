@@ -107,10 +107,15 @@ export function createService(env) {
         ['UPDATE reports SET status=?,archive_json=?,public_url=?,updated_at=?,armor=NULL,body_deleted_at=coalesce(body_deleted_at,?),failure_code=NULL,delivery_attempts=delivery_attempts+1,next_attempt_at=? WHERE receipt_id=? AND publication_consent=?', status, JSON.stringify(result), result.public_url || null, iso(), iso(), status === 'pending_review' ? new Date(clock() + 900000).toISOString() : null, row.receipt_id, publicConsent(row.kind)],
         audit('github-pr', result.state === 'pending' ? 'pr_pending' : status, row.receipt_id, { pr: result.pr_number || null, file_sha256: row.file_sha256 })
       ]);
-    } catch {
+    } catch (error) {
       await store.batch([
         ['UPDATE reports SET updated_at=?,delivery_attempts=delivery_attempts+1,next_attempt_at=?,failure_code=? WHERE receipt_id=?', iso(), new Date(clock() + Math.min(3600000, 30000 * 2 ** Math.min(row.delivery_attempts || 0, 7))).toISOString(), 'github_unavailable_or_unverified', row.receipt_id],
-        audit('github-pr', 'pr_sync_failed', row.receipt_id)
+        // Store only bounded classifications, never upstream bodies, URLs or credentials.
+        audit('github-pr', 'pr_sync_failed', row.receipt_id, {
+          http_status: Number.isInteger(error?.statusCode) && error.statusCode >= 100 && error.statusCode <= 599 ? error.statusCode : null,
+          operation: /^(GET|POST|PUT) (git|contents|pulls|compare)$/.test(error?.operation || '') ? error.operation : null,
+          error_type: ['Error', 'TypeError', 'AbortError', 'TimeoutError', 'SyntaxError'].includes(error?.name) ? error.name : 'Error'
+        })
       ]);
     } finally {
       await store.run('DELETE FROM pr_sync_locks WHERE receipt_id=? AND owner=?', row.receipt_id, owner);

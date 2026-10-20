@@ -74,6 +74,24 @@ test('GitHub archive refuses redirects without forwarding its bearer credential'
   assert.equal(calls, 1);
 });
 
+test('GitHub transport never calls ambient fetch with the archive as its receiver', async t => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  let calls = 0;
+  globalThis.fetch = async function (url, options) {
+    if (this !== undefined && this !== globalThis) throw new TypeError('Illegal invocation');
+    calls++;
+    assert.equal(options.redirect, 'manual');
+    return Response.json({ object: { sha: 'a'.repeat(40) } });
+  };
+  const archive = new GitHubArchive({ token: 'fixture', repository: 'owner/repo' });
+  assert.equal((await archive.api('git/ref/heads/main')).object.sha, 'a'.repeat(40));
+  const request = Object.create(archive);
+  request.signal = AbortSignal.timeout(25000);
+  assert.equal((await request.api('git/ref/heads/main')).object.sha, 'a'.repeat(40));
+  assert.equal(calls, 2);
+});
+
 test('Access certificate fetch also uses Workers-compatible redirect handling', async t => {
   const originalFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = originalFetch; });

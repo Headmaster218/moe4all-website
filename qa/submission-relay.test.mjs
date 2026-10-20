@@ -99,6 +99,23 @@ test('unverified, wrong-path and wrong-hash PR results never release a body or c
   }
 });
 
+test('forwarding diagnostics retain safe HTTP classifications but no upstream secrets', async t => {
+  const a = setup(t), received = (await a.upload(await a.open(await fixture()))).body;
+  for (const [error, expected] of [
+    [Object.assign(new Error('private credential and upstream body'), { statusCode: 403, operation: 'POST git' }), { http_status: 403, operation: 'POST git', error_type: 'Error' }],
+    [Object.assign(new TypeError('private runtime detail'), { statusCode: 'secret', operation: 'https://private.example/token' }), { http_status: null, operation: null, error_type: 'TypeError' }]
+  ]) {
+    a.env.ARCHIVE.process = async () => { throw error; };
+    await a.api.syncPending();
+    const events = await a.api.store.all('SELECT detail_json FROM audit_events WHERE receipt_id=? AND action=? ORDER BY created_at', received.receipt_id, 'pr_sync_failed');
+    assert.deepEqual(JSON.parse(events.at(-1).detail_json), expected);
+    assert.ok(!JSON.stringify(events).includes('private'));
+    const row = await a.api.store.one('SELECT * FROM reports WHERE receipt_id=?', received.receipt_id);
+    assert.equal(row.status, 'forwarding'); assert.ok(row.armor);
+    a.advance(3600001);
+  }
+});
+
 test('failure retries back off, expire after 72h even without GitHub configuration, and preserve receipts', async t => {
   const a = setup(t), s = await a.open(await fixture('error')), received = (await a.upload(s)).body;
   let attempts = 0; a.env.ARCHIVE.process = async () => { attempts++; throw new Error('private upstream detail'); };

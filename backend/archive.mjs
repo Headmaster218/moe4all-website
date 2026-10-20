@@ -4,7 +4,8 @@ const encoder = new TextEncoder();
 export class GitHubArchive {
   constructor({ token, repository, fetcher = fetch }) {
     this.mode = 'github'; this.token = token; this.repository = repository;
-    this.fetcher = fetcher;
+    // Workers rejects native fetch when called with an unrelated object as `this`.
+    this.fetcher = (...args) => fetcher(...args);
     if (!/^[\w.-]+\/[\w.-]+$/.test(repository)) throw new Error('GitHub archive requires a repository');
   }
   async api(path, method = 'GET', body) {
@@ -12,7 +13,9 @@ export class GitHubArchive {
       method, redirect: 'manual', signal: this.signal ? AbortSignal.any([this.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'MoE4All-Submissions' },
       ...(body ? { body: JSON.stringify(body) } : {})
     });
-    if (!response.ok) { const error = new Error('GitHub archive request failed'); error.statusCode = response.status; throw error; }
+    if (!response.ok) {
+      throw Object.assign(new Error('GitHub archive request failed'), { statusCode: response.status, operation: `${method} ${path.split('/')[0]}` });
+    }
     return response.status === 204 ? null : response.json();
   }
   async verify(row) {
