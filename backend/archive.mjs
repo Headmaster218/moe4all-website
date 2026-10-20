@@ -9,7 +9,7 @@ export class GitHubArchive {
   }
   async api(path, method = 'GET', body) {
     const response = await this.fetcher(`https://api.github.com/repos/${this.repository}/${path}`, {
-      method, redirect: 'error', signal: this.signal ? AbortSignal.any([this.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'MoE4All-Submissions' },
+      method, redirect: 'manual', signal: this.signal ? AbortSignal.any([this.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Authorization: `Bearer ${this.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'MoE4All-Submissions' },
       ...(body ? { body: JSON.stringify(body) } : {})
     });
     if (!response.ok) { const error = new Error('GitHub archive request failed'); error.statusCode = response.status; throw error; }

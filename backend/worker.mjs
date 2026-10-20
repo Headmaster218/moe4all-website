@@ -11,7 +11,7 @@ export async function verifyAccess(request, env) {
     const header = JSON.parse(new TextDecoder().decode(bytes(parts[0]))), claims = JSON.parse(new TextDecoder().decode(bytes(parts[1])));
     if (header.alg !== 'RS256' || claims.iss !== env.ACCESS_ISSUER || !(Array.isArray(claims.aud) ? claims.aud : [claims.aud]).includes(env.ACCESS_AUD) || claims.email !== env.ADMIN_EMAIL || !Number.isFinite(claims.exp) || claims.exp * 1000 <= Date.now() || (claims.nbf && claims.nbf * 1000 > Date.now())) return null;
     if (!keyCache || keyCache.issuer !== env.ACCESS_ISSUER || keyCache.expires < Date.now()) {
-      const response = await fetch(`${env.ACCESS_ISSUER}/cdn-cgi/access/certs`, { redirect: 'error' });
+      const response = await fetch(`${env.ACCESS_ISSUER}/cdn-cgi/access/certs`, { redirect: 'manual' });
       if (!response.ok) return null;
       keyCache = { issuer: env.ACCESS_ISSUER, keys: (await response.json()).keys, expires: Date.now() + 300000 };
     }
@@ -29,7 +29,8 @@ function service(env, ctx) {
     authorizeAdmin: request => verifyAccess(request, env),
     verifyHuman: async token => {
       if (typeof token !== 'string' || !token || token.length > 2048) return false;
-      const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token }), redirect: 'error', signal: AbortSignal.timeout(15000) });
+      // Workers rejects redirect:"error" before sending; manual + !ok still refuses redirects.
+      const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token }), redirect: 'manual', signal: AbortSignal.timeout(15000) });
       if (!response.ok) return false;
       const value = await response.json();
       return value.success === true && value.hostname === new URL(env.SITE_ORIGIN).hostname && value.action === 'submission';
