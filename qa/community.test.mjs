@@ -91,6 +91,23 @@ test('receipts are scoped and pending benchmark data never leaks into public row
   assert.equal((await a.call('/admin/overview')).status, 401);
   assert.equal((await a.call(`/admin/reports/${r.receipt_id}`)).status, 401);
 });
+
+test('lost authorization response can be retried without consuming a human token twice', async t => {
+  for (const mode of ['local_review', 'github_pr']) {
+    const a = setup(); t.after(a.close); a.env.REVIEW_MODE = mode;
+    // createService snapshots REVIEW_MODE, so instantiate after setting the mode.
+    const service = createService(a.env), s = await a.begin();
+    let verifications = 0;
+    a.env.verifyHuman = async token => ++verifications === 1 && token === 'one-use';
+    const consent = 'public_benchmark';
+    const authorize = (token, chosen = consent) => service.fetch(new Request(`http://localhost:8765/v1/upload-sessions/${s.session_id}/authorize`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ consent: chosen, turnstile_token: 'one-use' }) }));
+    assert.equal((await authorize(s.browser)).status, 200);
+    assert.equal((await authorize(s.browser)).status, 200);
+    assert.equal(verifications, 1);
+    assert.equal((await authorize(s.session_token)).status, 401);
+    assert.equal((await authorize(s.browser, 'private_error')).status, 403);
+  }
+});
 test('retries recover the same receipt; line-ending variations deduplicate by payload hash', async t => {
   const a = setup(); t.after(a.close); const s = await a.begin(); await a.authorize(s); const first = await a.upload(s), second = await a.upload(s);
   assert.equal(second.status, 200); assert.equal(second.value.receipt_id, first.value.receipt_id); assert.equal(second.value.duplicate, true);

@@ -3,6 +3,7 @@ import { filterRows, filterValues, comparisonError, csv, strategyNames, strategy
 import { loadLeaderboard } from './leaderboard-loader.mjs';
 import { assembleIndex, indexRows, provenanceLinks } from './leaderboard-model.mjs';
 import { receiptHandoff, receiptCredential, verifiedReceipt } from './receipt-model.mjs';
+import { uploadStore, sameReport, submissionRequest, humanVerifier } from './upload-support.mjs';
 
 const config = window.MOE4ALL_COMMUNITY_CONFIG || {}, $ = selector => document.querySelector(selector);
 const publicPr = config.reviewMode === 'github_pr';
@@ -32,23 +33,42 @@ try { receipts = JSON.parse(localStorage.getItem(storageKey) || '[]').filter(r =
 const fragment = new URLSearchParams(location.hash.slice(1));
 let receiptTransfer = null, receiptTransferError = '';
 try { receiptTransfer = receiptHandoff(location.hash); } catch (error) { receiptTransferError = error.message; }
-let confirmation = fragment.has('session') && fragment.has('authorize') ? { id: fragment.get('session'), token: fragment.get('authorize') } : null;
+const pendingUploads = uploadStore(() => sessionStorage, config.apiBase);
+let confirmation = fragment.has('session') && fragment.has('authorize') ? { id: fragment.get('session'), token: fragment.get('authorize') } : document.body.dataset.page === 'upload' ? pendingUploads.read('confirmation') : null;
+const confirmationSaved = !confirmation || pendingUploads.write('confirmation', confirmation);
 if (receiptTransfer || receiptTransferError) history.replaceState(null, '', location.pathname + location.search + '#receipts');
 else if (confirmation) history.replaceState(null, '', location.pathname + location.search);
 const state = { page: receiptTransfer || receiptTransferError ? 'receipts' : confirmation ? 'confirmation' : location.hash === '#receipts' ? 'receipts' : document.body.dataset.page, index: null, dataInfo: null, rows: [], bounds: null, filters: blankFilters(), filtersOpen: true, metric: 'decode', selected: '', compare: [], pageNumber: 1, uploadKind: new URLSearchParams(location.search).get('kind') === 'error' ? 'error' : 'benchmark', file: null, decoded: null, fileError: '', header: null, processing: false, uploading: false, uploaded: null, uploadSession: null, adminTab: 'benchmark', overview: null, confirmation: null, confirmDone: null };
 let toastTimer, receiptTimer, receiptCursor = 0, fileSequence = 0;
+Object.assign(state, { uploadSession: pendingUploads.read('upload'), uploadError: null, uploadProgress: '', humanToken: '', confirmationBusy: false, resumeWarning: confirmationSaved ? '' : '浏览器无法保存恢复信息，请勿刷新；CMD 中的原文件仍保留。' });
+const verifier = humanVerifier(window, document, { token: value => { state.humanToken = value; if (value && state.uploadError?.stage === '人机验证') state.uploadError = null; showUploadFeedback(); syncButtons(); }, failure: message => uploadFailure(new Error(message), '人机验证') });
+function uploadFailure(error, stage = error.stage || '上传') {
+  state.uploadError = { stage, message: error.message, code: error.code || '', requestId: error.requestId || '' };
+  showUploadFeedback(true);
+}
+function showUploadFeedback(focus = false) {
+  let panel = $('#upload-feedback');
+  if (!panel && ['upload', 'confirmation'].includes(state.page)) {
+    panel = document.createElement('div'); panel.id = 'upload-feedback'; panel.tabIndex = -1;
+    ($('#main .upload-main') || $('#main')).prepend(panel);
+  }
+  if (!panel) return;
+  const e = state.uploadError;
+  const closed = e && state.page === 'confirmation' && ['session_expired', 'session_closed', 'invalid_token'].includes(e.code);
+  panel.innerHTML = e ? `<section class="upload-failure" role="alert"><h2>${escape(e.stage)}失败</h2><p>${escape(e.message)}</p><p>${closed ? '此授权会话已失效。请回到 CMD 重新发起上传，或在本页选择原报告。无需重新测试。' : '原报告没有删除。可在本页重试，无需刷新或重新测试。'}</p>${e.code ? '<p class="mono">错误代码：' + escape(e.code) + '</p>' : ''}${e.requestId ? '<p class="mono">请求编号：' + escape(e.requestId) + '</p>' : ''}<div class="actions">${button(closed ? 'restart-upload' : 'retry-upload', closed ? '选择原报告' : '重试此步骤', closed ? 'folder-open' : 'rotate-ccw')}</div></section>` : state.uploadProgress ? `<div class="notice" role="status">${escape(state.uploadProgress)}</div>` : '';
+  if (state.resumeWarning) panel.innerHTML += `<div class="notice warn" role="alert">${escape(state.resumeWarning)}</div>`;
+  if (state.page === 'upload' && state.uploadSession && !state.decoded) panel.innerHTML += '<div class="notice" role="status">已恢复待上传会话。请重新选择同一份 .m4b / .m4e 原文件；不会重新运行测试。</div>';
+  if (focus && e) { panel.focus({ preventScroll: true }); panel.scrollIntoView({ block: 'nearest' }); }
+}
 function icons() { window.lucide?.createIcons(); }
 function toast(text) { clearTimeout(toastTimer); $('#toast').textContent = text; $('#toast').classList.add('visible'); toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 4200); }
 function persistReceipts() { try { localStorage.setItem(storageKey, JSON.stringify(receipts)); } catch { toast('浏览器无法保存回执，请下载一份到本地'); } }
 function download(name, value, type = 'application/json') { const url = URL.createObjectURL(new Blob([value], { type })), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
 async function api(path, options = {}) {
   if (!config.apiBase) throw new Error('上传后端尚未配置，请使用本地服务预览');
-  const response = await fetch(config.apiBase + path, { credentials: 'include', redirect: 'error', ...options, headers: { Accept: 'application/json', ...options.headers }, signal: AbortSignal.timeout(30000) });
-  let value; try { value = await response.json(); } catch { throw new Error('服务器返回了无法识别的响应，上传未确认'); }
-  if (!response.ok) { const error = new Error(value.error?.message || '请求失败'); error.status = response.status; error.code = value.error?.code; throw error; }
-  return value;
+  return submissionRequest(config.apiBase, path, options);
 }
-const post = (path, value, token) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(value) });
+const post = (path, value, token, stage) => api(path, { method: 'POST', stage, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(value) });
 function shell() {
   clearTimeout(receiptTimer);
   $('#app').innerHTML = `<aside class="sidebar"><a class="brand" href="index.html"><img src="../assets/favicon.svg" alt="" width="33" height="33"><span>MoE4All<small>LAB / 实测与诊断</small></span></a><div class="rail-title"><span class="signal"></span> COMMUNITY WORKSPACE</div><nav aria-label="社区导航"><div class="nav-label">社区数据</div><a class="nav-item ${state.page === 'benchmarks' ? 'active' : ''}" href="index.html">${icon('blocks')}性能排行榜</a><div class="nav-label">参与共建</div><a class="nav-item ${state.page === 'upload' || state.page === 'confirmation' ? 'active' : ''}" href="upload.html">${icon('arrow-up')}提交报告</a><a class="nav-item ${state.page === 'receipts' ? 'active' : ''}" href="index.html#receipts">${icon('folder-open')}我的回执</a><div class="nav-label">维护者</div>${publicPr ? '<a class="nav-item" href="https://github.com/Headmaster218/MoE4All/pulls" target="_blank" rel="noopener noreferrer">' + icon('github') + 'GitHub PR</a>' : '<a class="nav-item" href="admin.html">' + icon('shield-check') + '审核中心</a>'}</nav><div class="sidebar-bottom"><p><span class="signal"></span>MOE4ALL-SUBMISSION/1</p></div></aside><div class="shell"><header class="topbar"><div class="workspace-nav">${iconButton('menu', 'menu', '展开导航')}<a class="technical-return" href="../technical.html">${icon('arrow-left')}<span>返回技术页</span></a></div><div class="topbar-actions"><button class="toolbar-command" data-download title="下载 MoE4All" aria-label="下载 MoE4All">${icon('download')}<span class="toolbar-label">下载</span></button><button class="toolbar-command" data-support title="支持项目" aria-label="支持项目">${icon('coffee')}<span class="toolbar-label">支持项目</span></button><button class="toolbar-command" data-contact title="联系我们" aria-label="联系我们">${icon('message-square')}<span class="toolbar-label">联系我们</span></button></div></header><main id="main" tabindex="-1"></main><footer class="app-footer"><span>MoE4All LAB / HARDWARE IS NOT THE LIMIT.</span><span>MOE4ALL-SUBMISSION/1 · .m4b / .m4e</span></footer></div><div id="compare-tray" class="compare-tray" hidden></div>`;
@@ -194,7 +214,7 @@ function renderUpload() {
   const errorKind = state.uploadKind === 'error', decoded = state.decoded;
   const content = state.uploaded ? receiptResult(state.uploaded) : `<div class="type-tabs"><button class="type-tab ${!errorKind ? 'active' : ''}" data-action="kind" data-kind="benchmark">${icon('cpu')}性能实测 <small>.m4b</small></button><button class="type-tab ${errorKind ? 'active' : ''}" data-action="kind" data-kind="error">${icon('message-square')}诊断反馈 <small>.m4e</small></button></div><input class="file-input" type="file" id="file" accept=".m4b,.m4e" aria-label="选择 MoE4All 报告"><div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="选择或拖入报告文件">${icon(errorKind ? 'message-square' : 'arrow-up')}<strong>把 ${errorKind ? '.m4e 诊断' : '.m4b 实测'}报告拖到这里</strong><p>引擎生成的原始文件 · 封装文件与解压后 JSON 均不超过 128 KiB</p><div class="actions">${button('pick', '选择文件', 'folder-open')}</div></div>${state.file ? `<div class="file-strip">${icon('folder-open')}<div class="file-name"><strong>${escape(state.file.name)}</strong><small>${bytes(state.file.size)} · ${state.processing ? '正在解码与校验' : decoded ? '文件校验完成' : '未通过校验'}</small></div>${iconButton('clear-file', 'x', '移除文件', state.uploading ? 'disabled' : '')}</div>` : ''}${state.processing ? '<div class="loading">正在检查 gzip、SHA-256、payload 和可读摘要…</div>' : ''}${state.fileError ? `<div class="notice error" role="alert">${escape(state.fileError)}</div>` : ''}${decoded ? `<div class="checks">${['封装完整', 'SHA-256 一致', 'payload 有效', '隐私初检通过'].map(text => `<span class="check">${icon('check')}${text}</span>`).join('')}</div>${payloadPreview(decoded)}<section class="report-section"><h2>报告身份</h2><dl class="details"><dt>报告 ID</dt><dd>${escape(decoded.id)}</dd><dt>文件 / 解压后</dt><dd>${bytes(decoded.sizeBytes)} / ${bytes(decoded.decodedBytes)}</dd><dt>封装 / payload schema</dt><dd>SUBMISSION/1 · ${escape(decoded.headers.schema)}</dd></dl><div class="hash-label">PAYLOAD SHA-256 / 封装内的原始 JSON</div><div class="hash">${decoded.payloadSha256}</div><details class="code-details"><summary>展开整个封装文件的 SHA-256 与原始内容</summary><div class="hash">${decoded.fileSha256}</div><pre>${escape(decoded.text)}</pre></details></section><label class="privacy-choice"><input type="checkbox" id="consent"><span>${publicPr ? '我已检查文件内容，同意将原报告公开提交到 GitHub PR；PR 创建后即公开，不会自动合并。' : errorKind ? '我已检查描述与诊断内容，同意将这份报告提交到私有收件箱。' : '我已检查文件内容，同意实测报告在审核后公开到 Git 和社区榜单。'}</span></label><div id="human-verification"></div><div class="upload-bottom"><span>${publicPr ? '只创建 PR，不创建 Issue；合并后实测才进入榜单。' : errorKind ? '仅维护者可查看原始诊断，不自动发布 Issue。' : '文件校验通过不等于独立复测或立即上榜。'}</span>${button('upload', state.uploading ? '正在提交…' : publicPr ? '提交报告' : errorKind ? '提交私有诊断' : '提交实测报告', 'arrow-up', 'primary', 'id="upload-button" disabled')}</div>` : state.header && !state.processing ? `<details class="code-details"><summary>查看未验证的封装摘要</summary><pre>${escape(state.header.summary.join('\n'))}</pre></details>` : ''}`;
   $('#main').innerHTML = heading('提交报告', 'SUBMISSION INTAKE', '文件里有实测，有现场，也有可追溯的依据。') + `<div class="upload-workspace"><section class="upload-main">${content}</section>${uploadAside()}</div>`;
-  icons(); bindDropzone(); scheduleReceiptRefresh();
+  icons(); bindDropzone(); scheduleReceiptRefresh(); showUploadFeedback(); syncButtons();
 }
 function scheduleReceiptRefresh() {
   clearTimeout(receiptTimer);
@@ -237,25 +257,34 @@ async function readReceiptFile(file) {
 }
 async function loadConfirmation() {
   $('#main').innerHTML = '<div class="loading">正在读取本次上传信息…</div>';
-  try { state.confirmation = await api(`/upload-sessions/${encodeURIComponent(confirmation.id)}/confirmation`, { headers: { Authorization: `Bearer ${confirmation.token}` } }); renderConfirmation(); }
-  catch (error) { $('#main').innerHTML = empty('这个上传会话暂不可用', escape(error.message), 'shield-check'); icons(); }
+  try {
+    state.confirmation = await api(`/upload-sessions/${encodeURIComponent(confirmation.id)}/confirmation`, { stage: '读取确认信息', headers: { Authorization: `Bearer ${confirmation.token}` } });
+    confirmation.expires_at = state.confirmation.expires_at; pendingUploads.write('confirmation', confirmation);
+    state.confirmDone = state.confirmation.state === 'ready' ? 'ready' : state.confirmation.state === 'cancelled' ? 'cancelled' : null;
+    state.uploadError = null; renderConfirmation();
+  } catch (error) {
+    if (['session_expired', 'session_closed', 'invalid_token'].includes(error.code)) pendingUploads.clear('confirmation');
+    $('#main').innerHTML = heading('确认这次上传', 'CMD HANDOFF', '授权信息读取失败不会删除 CMD 中的报告。');
+    uploadFailure(error); icons();
+  }
 }
 function renderConfirmation() {
   const c = state.confirmation;
+  if (c.state === 'uploaded') {
+    verifier.dispose(); pendingUploads.clear('confirmation');
+    $('#main').innerHTML = heading('报告已收到', 'CMD HANDOFF', '不需要再次验证或上传，请回到 CMD 查看回执。'); return;
+  }
   $('#main').innerHTML = heading('确认这次上传', 'CMD HANDOFF', '浏览器只负责授权，文件仍由你的 CMD 发送。') + `<section class="confirmation">${state.confirmDone ? `<div class="receipt-big">${icon(state.confirmDone === 'ready' ? 'check' : 'x')}<h2>${state.confirmDone === 'ready' ? '已授权，请回到 CMD 继续上传。' : '已取消这次上传。'}</h2><p>${state.confirmDone === 'ready' ? '授权不等于文件已经上传。最终以 CMD 返回的回执为准。' : '本地报告文件不会被删除。'}</p></div>` : `<div class="tags">${tag(c.kind === 'error' ? (c.review_mode === 'github_pr' ? '公开诊断 .m4e' : '私有诊断 .m4e') : '公开实测 .m4b', c.kind === 'error' ? 'blue' : 'mint')}${tag('15 分钟有效', 'amber')}</div><dl class="details"><dt>报告 ID</dt><dd>${escape(c.report_id)}</dd><dt>文件大小</dt><dd>${bytes(c.size_bytes)}</dd><dt>整个文件 SHA-256</dt><dd>${escape(c.file_sha256)}</dd><dt>用途</dt><dd>${c.review_mode === 'github_pr' ? '公开 GitHub PR，维护者手动审核，不创建 Issue' : c.kind === 'error' ? '私有收件箱，不自动创建 Issue' : '审核后归档 Git，进入公开榜单'}</dd></dl><section class="report-section"><h2>可读摘要</h2><p class="muted">${c.summary_verified ? '已按收到的原件校验' : '客户端提供，尚未校验原件；请与 CMD 显示的内容核对。'}</p>${c.summary?.length ? '<pre class="description">' + escape(c.summary.join('\n')) + '</pre>' : '<p class="muted">客户端未提供摘要，请在 CMD 中检查报告内容。</p>'}</section><label class="privacy-choice"><input type="checkbox" id="confirmation-consent"><span>${c.review_mode === 'github_pr' ? '我已在 CMD 检查内容，同意公开这份报告；PR 创建后即公开，不必等到合并。' : c.kind === 'error' ? '我已在 CMD 检查内容，同意提交这份私有诊断。' : '我已在 CMD 检查内容，同意审核后公开实测报告。'}</span></label><div id="human-verification"></div><div class="actions">${button('confirm-upload', '确认并返回 CMD', 'check', 'primary', 'id="confirmation-button" disabled')}${button('cancel-upload', '取消', 'x')}</div><div class="notice ${config.mode === 'local' ? 'warn' : ''}">${config.mode === 'local' ? '当前为本地联调：不调用 Cloudflare 人机验证，不产生云端上传。' : '请核对 CMD 中显示的报告 ID 和文件摘要，勿确认来源不明的上传。'}</div>`}</section>`;
-  icons(); if (!state.confirmDone) prepareHuman(c).catch(() => toast('人机验证未能加载，请检查网络后刷新页面。'));
+  icons(); showUploadFeedback(); if (!state.confirmDone) prepareHuman(c).catch(error => uploadFailure(error, '人机验证'));
 }
-async function prepareHuman(session) {
-  state.humanToken = '';
+async function prepareHuman(session, force = false) {
   if (config.mode === 'local') return;
-  if (!session.turnstile_site_key) { toast('人机验证尚未配置'); return; }
-  if (!window.turnstile) await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; script.onload = resolve; script.onerror = reject; document.head.append(script); });
-  if (!$('#human-verification')) return;
-  window.turnstile.render('#human-verification', { sitekey: session.turnstile_site_key, action: 'submission', callback: token => { state.humanToken = token; syncButtons(); }, 'expired-callback': () => { state.humanToken = ''; syncButtons(); } });
+  try { await verifier.prepare(session, force); }
+  catch (error) { error.stage = '人机验证'; throw error; }
 }
 function syncButtons() {
-  const upload = $('#upload-button'); if (upload) upload.disabled = !$('#consent')?.checked || state.uploading || !state.decoded;
-  const confirm = $('#confirmation-button'); if (confirm) confirm.disabled = !$('#confirmation-consent')?.checked || (config.mode !== 'local' && !state.humanToken);
+  const upload = $('#upload-button'); if (upload) upload.disabled = !$('#consent')?.checked || state.uploading || !state.decoded || (config.mode !== 'local' && state.uploadSession?.state === 'awaiting_verification' && !state.humanToken);
+  const confirm = $('#confirmation-button'); if (confirm) confirm.disabled = state.confirmationBusy || !$('#confirmation-consent')?.checked || (config.mode !== 'local' && !state.humanToken);
 }
 function renderAdmin() {
   if (publicPr) {
@@ -292,7 +321,9 @@ function openGroup(id) {
 }
 async function chooseFile(file) {
   if (!file || state.uploading) return;
-  const sequence = ++fileSequence; state.file = file; state.decoded = null; state.header = null; state.fileError = ''; state.processing = true; state.uploaded = null; state.uploadSession = null; renderUpload();
+  verifier.dispose();
+  const previous = state.uploadSession;
+  const sequence = ++fileSequence; state.file = file; state.decoded = null; state.header = null; state.fileError = ''; state.processing = true; state.uploaded = null; state.uploadSession = null; state.uploadError = null; state.uploadProgress = ''; renderUpload();
   try {
     const { decodeSubmission, inspectHeaders, privacyFindings } = await import('./submission-codec.mjs');
     if (!/\.(m4b|m4e)$/.test(file.name)) throw new Error('只接受引擎生成的 .m4b 或 .m4e，不接受裸 JSON。');
@@ -302,8 +333,28 @@ async function chooseFile(file) {
     const decoded = await decodeSubmission(content, { filename: file.name }); if (sequence !== fileSequence) return;
     const findings = privacyFindings(decoded.payload); if (findings.length) throw new Error('发现疑似私密信息：' + findings.map(f => f.path).join('、') + '。请回到向导检查并重新导出。');
     state.decoded = decoded;
+    if (sameReport(previous, decoded)) state.uploadSession = previous;
+    else pendingUploads.clear('upload');
   } catch (error) { if (sequence === fileSequence) state.fileError = error.message; }
-  finally { if (sequence === fileSequence) { state.processing = false; renderUpload(); } }
+  finally {
+    if (sequence === fileSequence) {
+      state.processing = false; renderUpload();
+      if (state.uploadSession && state.decoded && config.mode !== 'local') {
+        try {
+          const s = state.uploadSession;
+          const info = await api(`/upload-sessions/${s.session_id}/confirmation`, { stage: '恢复上传验证', headers: { Authorization: `Bearer ${s.browser}` } });
+          if (sequence !== fileSequence) return;
+          s.state = info.state;
+          if (info.state === 'awaiting_verification') await prepareHuman(info);
+          syncButtons();
+        } catch (error) {
+          if (sequence !== fileSequence) return;
+          if (['session_expired', 'session_closed', 'invalid_token'].includes(error.code)) { state.uploadSession = null; pendingUploads.clear('upload'); }
+          uploadFailure(error); syncButtons();
+        }
+      }
+    }
+  }
 }
 function bindDropzone() {
   const zone = $('#dropzone'); if (!zone) return;
@@ -316,28 +367,78 @@ function bindDropzone() {
 }
 async function sendFile() {
   if (!state.decoded || !$('#consent')?.checked || state.uploading) return;
-  state.uploading = true; syncButtons();
+  state.uploading = true; state.uploadError = null; state.uploadProgress = '正在连接上传服务…'; showUploadFeedback(); syncButtons();
   try {
     const d = state.decoded;
     if (!state.uploadSession) {
-      const session = await post('/upload-sessions', { kind: d.kind, report_id: d.id, file_sha256: d.fileSha256, size_bytes: d.sizeBytes, summary: d.summary.slice(0, 8).map(line => [...line].slice(0, 500).join('')) });
+      const session = await post('/upload-sessions', { kind: d.kind, report_id: d.id, file_sha256: d.fileSha256, size_bytes: d.sizeBytes, summary: d.summary.slice(0, 8).map(line => [...line].slice(0, 500).join('')) }, null, '创建上传会话');
       const url = new URL(session.verification_url);
-      if (url.origin !== location.origin) throw new Error('上传确认地址不属于本站');
+      if (url.origin !== location.origin || url.pathname !== location.pathname) throw new Error('上传确认地址不属于本站上传页');
       const browser = new URLSearchParams(url.hash.slice(1)).get('authorize');
-      state.uploadSession = { ...session, browser };
-      if (config.mode !== 'local') {
-        const info = await api(`/upload-sessions/${session.session_id}/confirmation`, { headers: { Authorization: `Bearer ${browser}` } });
-        await prepareHuman(info); toast('请完成人机验证后再次点击提交'); return;
-      }
+      if (!/^[A-Za-z0-9_-]+$/.test(session.session_id || '') || !session.session_token || !browser) throw new Error('上传服务返回了不完整的会话');
+      state.uploadSession = { session_id: session.session_id, session_token: session.session_token, browser, expires_at: session.expires_at, state: 'awaiting_verification', kind: d.kind, report_id: d.id, file_sha256: d.fileSha256, size_bytes: d.sizeBytes };
+      if (!pendingUploads.write('upload', state.uploadSession)) state.resumeWarning = '浏览器无法保存会话；请勿刷新，原报告仍在本地。';
     }
     const s = state.uploadSession;
-    const current = await api(`/upload-sessions/${s.session_id}`, { headers: { Authorization: `Bearer ${s.session_token}` } });
-    if (current.state === 'awaiting_verification') await post(`/upload-sessions/${s.session_id}/authorize`, { consent: consentFor(d.kind), turnstile_token: state.humanToken || '' }, s.browser);
-    else if (!['ready', 'uploaded'].includes(current.state)) throw new Error('会话已经结束，请重新提交');
-    const result = await api(`/upload-sessions/${s.session_id}/report`, { method: 'POST', headers: { Authorization: `Bearer ${s.session_token}`, 'Content-Type': 'text/plain; charset=utf-8' }, body: d.bytes });
+    const current = await api(`/upload-sessions/${s.session_id}`, { stage: '查询上传状态', headers: { Authorization: `Bearer ${s.session_token}` } });
+    s.state = current.state;
+    if (current.state === 'awaiting_verification') {
+      if (config.mode !== 'local' && !state.humanToken) {
+        const info = await api(`/upload-sessions/${s.session_id}/confirmation`, { stage: '读取验证信息', headers: { Authorization: `Bearer ${s.browser}` } });
+        await prepareHuman(info); state.uploadProgress = '请完成人机验证后，再点击提交。'; return;
+      }
+      const token = state.humanToken; state.humanToken = '';
+      await post(`/upload-sessions/${s.session_id}/authorize`, { consent: consentFor(d.kind), turnstile_token: token }, s.browser, '确认上传授权');
+      s.state = 'ready'; pendingUploads.write('upload', s);
+    } else if (!['ready', 'uploaded'].includes(current.state)) throw Object.assign(new Error('会话已经结束，请重新提交'), { code: 'session_closed' });
+    state.uploadProgress = '正在发送报告，等待收件回执…'; showUploadFeedback();
+    const result = await api(`/upload-sessions/${s.session_id}/report`, { method: 'POST', stage: '发送报告', headers: { Authorization: `Bearer ${s.session_token}`, 'Content-Type': 'text/plain; charset=utf-8' }, body: d.bytes });
+    if (result.report_id !== d.id || result.kind !== d.kind || !result.receipt_id || !result.receipt_token) throw new Error('收件回执与本次报告不匹配');
     receipts = [result, ...receipts.filter(r => r.receipt_id !== result.receipt_id)].slice(0, 100); persistReceipts(); state.uploaded = result; state.uploadSession = null;
-  } catch (error) { toast(error.message + '；原文件已保留。'); if (['session_expired', 'session_closed'].includes(error.code)) state.uploadSession = null; }
-  finally { state.uploading = false; if (state.uploaded) renderUpload(); else syncButtons(); }
+    pendingUploads.clear('upload'); verifier.dispose();
+  } catch (error) {
+    if (['session_expired', 'session_closed', 'invalid_token'].includes(error.code)) { state.uploadSession = null; pendingUploads.clear('upload'); verifier.dispose(); }
+    uploadFailure(error);
+  } finally { state.uploading = false; if (state.uploaded) renderUpload(); else { showUploadFeedback(); syncButtons(); } }
+}
+
+async function confirmUpload(cancel = false) {
+  if (!confirmation || state.confirmationBusy || (!cancel && !$('#confirmation-consent')?.checked)) return;
+  state.confirmationBusy = true; state.uploadError = null; syncButtons();
+  const cancelButton = $('[data-action="cancel-upload"]'); if (cancelButton) cancelButton.disabled = true;
+  try {
+    if (cancel) {
+      await post(`/upload-sessions/${confirmation.id}/cancel`, {}, confirmation.token, '取消授权');
+      state.confirmDone = 'cancelled'; pendingUploads.clear('confirmation'); verifier.dispose(); renderConfirmation(); return;
+    }
+    const c = await api(`/upload-sessions/${confirmation.id}/confirmation`, { stage: '查询授权状态', headers: { Authorization: `Bearer ${confirmation.token}` } });
+    if (!['ready', 'uploaded'].includes(c.state)) {
+      if (config.mode !== 'local' && !state.humanToken) { await prepareHuman(c, true); state.uploadProgress = '请重新完成人机验证，再确认。'; showUploadFeedback(); return; }
+      const token = state.humanToken; state.humanToken = '';
+      await post(`/upload-sessions/${confirmation.id}/authorize`, { consent: c.consent || consentFor(c.kind), turnstile_token: token }, confirmation.token, '确认上传授权');
+    }
+    state.confirmation = { ...c, state: c.state === 'uploaded' ? 'uploaded' : 'ready' }; state.confirmDone = 'ready'; verifier.dispose(); renderConfirmation();
+  } catch (error) { uploadFailure(error); }
+  finally { state.confirmationBusy = false; syncButtons(); const cancelButton = $('[data-action="cancel-upload"]'); if (cancelButton) cancelButton.disabled = false; }
+}
+
+async function retryUpload() {
+  if (state.uploading || state.confirmationBusy) return;
+  state.uploadError = null; state.uploadProgress = '';
+  if (state.page === 'confirmation') { verifier.dispose(); await loadConfirmation(); return; }
+  if (!state.decoded) { showUploadFeedback(); $('#file')?.click(); return; }
+  if (state.uploadSession?.state === 'awaiting_verification') {
+    verifier.dispose(); syncButtons();
+    try {
+      const s = state.uploadSession;
+      const info = await api(`/upload-sessions/${s.session_id}/confirmation`, { stage: '重试验证', headers: { Authorization: `Bearer ${s.browser}` } });
+      if (info.state === 'awaiting_verification') { await prepareHuman(info, true); showUploadFeedback(); syncButtons(); return; }
+    } catch (error) {
+      if (!['session_expired', 'session_closed', 'invalid_token'].includes(error.code)) { uploadFailure(error); return; }
+      state.uploadSession = null; pendingUploads.clear('upload'); verifier.dispose();
+    }
+  }
+  await sendFile();
 }
 
 document.addEventListener('change', event => {
@@ -392,15 +493,16 @@ document.addEventListener('click', async event => {
     if (action === 'compare') openDialog(dialogHeading('同条件样本对比', 'SIDE BY SIDE') + `<div class="compare-columns" style="--count:${state.compare.length}">${state.compare.map(id => state.rows.find(r => r.id === id)).map(row => `<section><h3>${escape(row.gpu)}</h3><div class="inspect-score">${fmt(row[state.metric])}<small>tok/s</small></div>${spark(row)}${detailList(row)}</section>`).join('')}</div>`);
     if (action === 'export-csv') download('moe4all-public-benchmarks.csv', csv(activeRows()), 'text/csv; charset=utf-8');
     if (action === 'pick') $('#file').click();
-    if (action === 'kind') { if (state.uploading) return; state.uploadKind = target.dataset.kind; state.decoded = null; state.file = null; state.header = null; state.fileError = ''; fileSequence++; renderUpload(); }
-    if (action === 'clear-file' || action === 'new-upload') { fileSequence++; Object.assign(state, { file: null, decoded: null, header: null, fileError: '', uploaded: null, processing: false, uploadSession: null }); renderUpload(); }
+    if (action === 'kind' || action === 'clear-file' || action === 'new-upload') { if (state.uploading) return; verifier.dispose(); pendingUploads.clear('upload'); fileSequence++; Object.assign(state, { file: null, decoded: null, header: null, fileError: '', uploaded: null, processing: false, uploadSession: null, uploadError: null, uploadProgress: '' }); if (action === 'kind') state.uploadKind = target.dataset.kind; renderUpload(); }
     if (action === 'upload') await sendFile();
+    if (action === 'retry-upload') await retryUpload();
+    if (action === 'restart-upload') { verifier.dispose(); pendingUploads.clear('confirmation'); confirmation = null; state.confirmation = null; state.page = 'upload'; state.uploadError = null; state.uploadProgress = ''; shell(); renderUpload(); }
     if (action === 'import-receipt') $('#receipt-file').click();
     if (action === 'download-receipt') { const r = receipts.find(r => r.receipt_id === id); if (r) download(r.receipt_id + '.private-receipt.json', JSON.stringify(r, null, 2)); }
     if (action === 'forget-receipt') { receipts = receipts.filter(r => r.receipt_id !== id); persistReceipts(); renderReceipts(); toast('已移除本机查询凭证；云端报告未删除'); }
     if (action === 'refresh-receipts') { target.disabled = true; for (const r of receipts.slice(0, 20)) { try { Object.assign(r, await api(`/receipts/${r.receipt_id}`, { headers: { Authorization: `Bearer ${r.receipt_token}` } }), { query_failed: false }); } catch { r.query_failed = true; } } persistReceipts(); renderReceipts(); }
-    if (action === 'confirm-upload') { const c = state.confirmation; await post(`/upload-sessions/${confirmation.id}/authorize`, { consent: c.consent || consentFor(c.kind), turnstile_token: state.humanToken || '' }, confirmation.token); state.confirmDone = 'ready'; renderConfirmation(); }
-    if (action === 'cancel-upload') { await post(`/upload-sessions/${confirmation.id}/cancel`, {}, confirmation.token); state.confirmDone = 'cancelled'; renderConfirmation(); }
+    if (action === 'confirm-upload') await confirmUpload();
+    if (action === 'cancel-upload') await confirmUpload(true);
     if (action === 'admin-login') { if (config.mode === 'local') { const response = await fetch('/__local/login', { method: 'POST', redirect: 'error' }); if (!response.ok) throw new Error('本地登录失败'); } await loadAdmin(); }
     if (action === 'refresh-admin') await loadAdmin();
     if (action === 'admin-tab') { state.adminTab = target.dataset.tab; renderAdmin(); adminPagination(); }
@@ -417,6 +519,7 @@ document.addEventListener('click', async event => {
 window.addEventListener('hashchange', () => {
   const incoming = new URLSearchParams(location.hash.slice(1));
   if (incoming.has('receipt')) {
+    verifier.dispose();
     try {
       const credential = receiptHandoff(location.hash);
       history.replaceState(null, '', location.pathname + location.search + '#receipts');
@@ -425,10 +528,12 @@ window.addEventListener('hashchange', () => {
     return;
   }
   if (incoming.has('session') && incoming.has('authorize')) {
+    verifier.dispose(); state.uploadError = null; state.uploadProgress = '';
     confirmation = { id: incoming.get('session'), token: incoming.get('authorize') };
+    state.resumeWarning = pendingUploads.write('confirmation', confirmation) ? '' : '浏览器无法保存会话，请勿刷新；原报告仍在 CMD 中。';
     history.replaceState(null, '', location.pathname + location.search);
     state.page = 'confirmation'; state.confirmDone = null; shell(); loadConfirmation();
-  } else if (location.hash === '#receipts') { state.page = 'receipts'; shell(); renderReceipts(); }
+  } else if (location.hash === '#receipts') { verifier.dispose(); state.page = 'receipts'; shell(); renderReceipts(); }
 });
 shell();
 if (state.page === 'confirmation') await loadConfirmation();

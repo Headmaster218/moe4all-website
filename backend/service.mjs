@@ -306,6 +306,8 @@ export function createService(env) {
         const consent = publicPr ? publicConsent(row.kind) : row.kind === 'benchmark' ? 'public_benchmark' : 'private_error';
         if (value.consent !== consent) deny(403, 'consent_required', '请确认本次提交的公开或私有用途');
         if (!['awaiting_verification', 'ready'].includes(row.state)) deny(409, 'session_closed', '会话已经结束');
+        // A successful authorization response may be lost. Never spend its one-use token again.
+        if (row.state === 'ready' && (!publicPr || row.publication_consent === consent)) return { body: { state: 'ready' } };
         if (!await env.verifyHuman(value.turnstile_token, request)) deny(403, 'verification_required', '请完成人机验证');
         await store.run('UPDATE upload_sessions SET state=?,publication_consent=? WHERE id=? AND state IN (?,?)', 'ready', publicPr ? consent : null, id, 'awaiting_verification', 'ready');
         return { body: { state: 'ready' } };

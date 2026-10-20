@@ -29,7 +29,7 @@ if (process.argv.includes('--preview')) {
   await mkdir(destination, { recursive: true });
   const files = ['index.html', 'technical.html', 'styles.css', 'app.js', 'memory-model.js', 'memory.js', 'agent-showcase.css', 'agent-showcase.js', 'release-model.js', 'site-ui.js', 'site-dialogs.js', 'site-dialogs.css', 'analytics.js', 'media.js', 'everyday.html', 'everyday.css', 'everyday.js', 'demo.html', 'demo.css', 'demo.js'];
   for (const file of files) await cp(path.join(root, file), path.join(destination, file));
-  const communityFiles = ['index.html', 'upload.html', 'app.mjs', 'ui-model.mjs', 'leaderboard-model.mjs', 'leaderboard-loader.mjs', 'receipt-model.mjs', 'submission-limits.mjs', 'submission-codec.mjs', 'styles.css', 'config.js', 'vendor/gzip.mjs', 'vendor/pako-LICENSE', 'vendor/pako-ZLIB-LICENSE'];
+  const communityFiles = ['index.html', 'upload.html', 'app.mjs', 'upload-support.mjs', 'ui-model.mjs', 'leaderboard-model.mjs', 'leaderboard-loader.mjs', 'receipt-model.mjs', 'submission-limits.mjs', 'submission-codec.mjs', 'styles.css', 'config.js', 'vendor/gzip.mjs', 'vendor/pako-LICENSE', 'vendor/pako-ZLIB-LICENSE'];
   for (const file of communityFiles) {
     await mkdir(path.dirname(path.join(destination, 'community', file)), { recursive: true });
     await cp(path.join(root, 'community', file), path.join(destination, 'community', file));

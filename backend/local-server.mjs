@@ -85,7 +85,7 @@ export async function startLocalServer({ directory, port = 8765, seed = true, re
       let pathname = decodeURIComponent(url.pathname);
       if (pathname === '/') { outgoing.writeHead(302, { Location: '/community/' }); outgoing.end(); return; }
       if (pathname === '/community/' || pathname === '/community') pathname = '/community/index.html';
-      const allowed = publicFiles.has(pathname.slice(1)) || /^\/community\/(?:index\.html|upload\.html|admin\.html|app\.mjs|ui-model\.mjs|leaderboard-model\.mjs|leaderboard-loader\.mjs|receipt-model\.mjs|submission-codec\.mjs|submission-limits\.mjs|styles\.css|config\.js|vendor\/gzip\.mjs)$/.test(pathname) || /^\/assets\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.(?:svg|webp|png|jpg|gif|js)$/.test(pathname);
+      const allowed = publicFiles.has(pathname.slice(1)) || /^\/community\/(?:index\.html|upload\.html|admin\.html|app\.mjs|upload-support\.mjs|ui-model\.mjs|leaderboard-model\.mjs|leaderboard-loader\.mjs|receipt-model\.mjs|submission-codec\.mjs|submission-limits\.mjs|styles\.css|config\.js|vendor\/gzip\.mjs)$/.test(pathname) || /^\/assets\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.(?:svg|webp|png|jpg|gif|js)$/.test(pathname);
       if (!allowed) { outgoing.writeHead(404); outgoing.end('Not found'); return; }
       const target = path.join(root, ...pathname.split('/').filter(Boolean));
       const body = pathname.endsWith('/config.js') ? Buffer.from(`window.MOE4ALL_COMMUNITY_CONFIG=${JSON.stringify({ apiBase: origin + '/v1', mode: 'local', reviewMode, repository: 'Headmaster218/MoE4All', leaderboardManifest: 'data/manifest.json' })};`) : await fs.readFile(pathname === '/assets/lucide.min.js' ? iconFile : target);
