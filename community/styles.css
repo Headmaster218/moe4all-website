@@ -63,6 +63,11 @@ body.modal-open{overflow:hidden}
 .facet-gpu{grid-column:1/-1}.dataset-status{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin:-10px 0 20px}.source-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.hardware-details{border-top:1px solid var(--line);padding-top:15px;margin-top:18px}.hardware-details summary{font-size:12px;color:var(--muted);cursor:pointer}.data-table .sort[aria-pressed=true]{color:var(--mint)}
 .stat-value{overflow-wrap:anywhere}
 .band .stat:last-child .stat-value{font-family:var(--font);font-size:24px;padding-top:4px}
+#language-toggle{min-width:42px;white-space:nowrap;flex:none}
+html[lang=en] .stat-foot{line-height:1.6}
+html[lang=en] .details{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+html[lang=en] .details dt{overflow-wrap:anywhere}
+html[lang=en] .brand small{font-size:8px;white-space:normal;line-height:1.5}
 @media(min-width:1101px){.facet-panel{grid-template-columns:repeat(4,minmax(0,1fr))}.facet-context{grid-column:span 2;padding:0;border:0}.facet-context legend{margin-bottom:9px;padding-top:0}.facet-ram,.facet-vram{grid-column:span 1}.facet-ram .facet-options,.facet-vram .facet-options{min-height:78px;align-content:flex-start}.facet-strategy{grid-column:span 2}}
 @media(max-width:1100px){.facet-panel{grid-template-columns:repeat(2,minmax(0,1fr))}.facet-ram,.facet-vram{grid-column:span 1}}
 @media(max-width:700px){.facet-strategy{grid-column:1/-1}.facet-ram,.facet-vram{grid-column:1/-1}.range-control{max-width:none}.range-preset{padding-inline:9px}.range-readout{gap:7px}.range-readout output{font-size:12px}}

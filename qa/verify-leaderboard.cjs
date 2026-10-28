@@ -90,6 +90,52 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     assert.equal(clicked, expected);
     while (!(await page.locator('[data-action="prev"]').isDisabled())) await page.locator('[data-action="prev"]').click();
     await page.locator('[data-row]').first().locator('.rank').click();
+    const assertEnglish = async () => {
+      assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+      assert.equal(await page.locator('h1').innerText(), 'Performance leaderboard');
+      const remaining = await page.evaluate(() => {
+        const copy = document.body.cloneNode(true);
+        copy.querySelectorAll('#language-toggle,script').forEach(node => node.remove());
+        return (copy.textContent || '').match(/[\u3400-\u9fff]+/g) || [];
+      });
+      assert.deepEqual(remaining, []);
+      const attributes = await page.locator('[title],[aria-label],[placeholder]').evaluateAll(nodes => nodes
+        .filter(node => node.id !== 'language-toggle')
+        .flatMap(node => ['title', 'aria-label', 'placeholder'].map(key => node.getAttribute(key) || ''))
+        .filter(value => /[\u3400-\u9fff]/.test(value)));
+      assert.deepEqual(attributes, []);
+    };
+    await page.locator('#language-toggle').click();
+    await assertEnglish();
+    await page.locator('[data-action="toggle-filters"]').click();
+    await assertEnglish();
+    await page.locator('input[data-filter="strategy"]').first().check();
+    await assertEnglish();
+    const strategy = await page.locator('input[data-filter="strategy"]:checked').inputValue();
+    await page.locator('#language-toggle').click();
+    assert.equal(await page.locator('input[data-filter="strategy"]:checked').inputValue(), strategy);
+    await page.locator('#language-toggle').click();
+    assert.equal(await page.locator('input[data-filter="strategy"]:checked').inputValue(), strategy);
+    await page.locator('[data-action="reset-filters"]').click();
+    await page.locator('input[name="context-mode"][value="points"]').check();
+    await assertEnglish();
+    await page.locator('input[name="context-mode"][value="range"]').check();
+    await page.locator('[data-action="toggle-filters"]').click();
+    await page.locator('[data-row]').first().locator('[data-action="sample"]').click();
+    await page.locator('dialog[open]').waitFor();
+    await page.locator('dialog .hardware-details').evaluate(node => { node.open = true; });
+    await assertEnglish();
+    await page.locator('dialog [data-action="close"]').click();
+    await page.locator('[data-compare]').first().check();
+    await assertEnglish();
+    await page.locator('[data-action="clear-compare"]').click();
+    await page.locator('#search').fill('no-matching-device');
+    await assertEnglish();
+    assert.equal(await page.locator('#run-table .empty h2').innerText(), 'No samples match these conditions');
+    await page.locator('[data-action="reset-filters"]').click();
+    await page.reload(); await page.locator('[data-row]').first().waitFor();
+    await assertEnglish();
+    assert.equal(await page.locator('.brand').getAttribute('href'), '../index.html');
     for (const width of [1440, 1024, 768, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.evaluate(() => { document.activeElement?.blur(); scrollTo(0, 0); });
@@ -98,10 +144,32 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       assert.ok(layout.scroll <= width + 2, JSON.stringify(layout)); assert.ok(layout.images);
       views.push(layout);
     }
-    assert.equal(dataRequests.length, 2);
-    await page.reload(); await page.locator('[data-row]').first().waitFor(); assert.equal(dataRequests.length, 3);
+    assert.equal(dataRequests.length, 3);
+    await page.reload(); await page.locator('[data-row]').first().waitFor(); assert.equal(dataRequests.length, 4);
+    await page.locator('#language-toggle').click();
     offline = true; await page.reload(); await page.locator('.dataset-status').getByText('离线缓存', { exact: true }).waitFor();
-    assert.equal(dataRequests.length, 4);
+    assert.equal(dataRequests.length, 5);
+    await page.locator('#language-toggle').click();
+    await page.locator('.dataset-status').getByText('Offline cache', { exact: true }).waitFor();
+    await assertEnglish();
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    for (const route of ['/technical.html', '/community/', '/community/upload.html', '/index.html']) {
+      await page.goto(origin + route);
+      await page.locator('.brand').first().waitFor();
+      await page.locator('.brand').first().click();
+      await page.waitForURL(origin + '/index.html');
+      assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+    }
+    const firstVisit = await browser.newContext({ locale: 'en-US', viewport: { width: 1440, height: 1000 } });
+    await firstVisit.route('https://api.github.com/**', route => route.fulfill({ json: [] }));
+    await firstVisit.route('https://raw.githubusercontent.com/**', route => route.fulfill({ status: 503, body: '' }));
+    const firstPage = await firstVisit.newPage();
+    await firstPage.goto(origin + '/community/');
+    await firstPage.getByRole('heading', { name: 'Leaderboard temporarily unavailable' }).waitFor();
+    assert.equal(await firstPage.locator('html').getAttribute('lang'), 'en');
+    assert.equal(await firstPage.getByRole('button', { name: 'Retry', exact: true }).count(), 1);
+    assert.equal(/[\u3400-\u9fff]/.test((await firstPage.locator('#main').innerText())), false);
+    await firstVisit.close();
     assert.deepEqual(errors, []); assert.deepEqual(external, []);
     await fs.writeFile(path.join(output, 'browser-results.json'), JSON.stringify({ status: 'passed', fixture: 'Synthetic benchmark fixtures, not published or real measurements', expected_rows: expected, row_selection: true, unfiltered_defaults: true, keyboard_selection: true, immutable_git_packages: true, offline_cache: true, views, errors, external_requests: external, unrelated_release_queries_mocked: releaseRequests, data_requests: dataRequests }, null, 2));
     console.log(JSON.stringify({ passed: true, expected_rows: expected, views: views.length, data_requests: dataRequests.length }));

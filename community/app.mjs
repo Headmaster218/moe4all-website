@@ -4,10 +4,14 @@ import { loadLeaderboard } from './leaderboard-loader.mjs';
 import { assembleIndex, indexRows, provenanceLinks } from './leaderboard-model.mjs';
 import { receiptHandoff, receiptCredential, verifiedReceipt } from './receipt-model.mjs';
 import { uploadStore, sameReport, submissionRequest, humanVerifier } from './upload-support.mjs';
+import { preferredLanguage, createLocale } from './locale.mjs';
 
 const config = window.MOE4ALL_COMMUNITY_CONFIG || {}, $ = selector => document.querySelector(selector);
 const publicPr = config.reviewMode === 'github_pr';
 const preview = config.mode === 'local';
+let language = window.MoeSite?.getPreferredLanguage() || preferredLanguage(navigator, { getItem: key => localStorage.getItem(key) });
+const { text: t, html: ui } = createLocale(() => language);
+const strategyLabel = row => t(strategyNames[strategyOf(row)]);
 const consentFor = kind => kind === 'benchmark' ? 'public_benchmark' : publicPr ? 'public_error' : 'private_error';
 const escape = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const icon = name => `<i data-lucide="${({ check: 'circle-check', 'sliders-horizontal': 'settings-2', 'rotate-ccw': 'history', 'refresh-cw': 'history', github: 'code-xml' })[name] || name}"></i>`;
@@ -15,17 +19,17 @@ const fmt = value => typeof value === 'number' ? value.toLocaleString('en-US', {
 const bytes = value => value >= 1048576 ? (value / 1048576).toFixed(2) + ' MiB' : (value / 1024).toFixed(1) + ' KiB';
 const gib = value => typeof value === 'number' ? (value / 1073741824).toFixed(0) + 'G' : '—';
 const contextLabel = value => value > 0 && value % 1024 === 0 ? value / 1024 + 'K' : Number(value).toLocaleString('en-US');
-const flag = value => value === null || value === undefined ? '未提供' : value ? 'ON' : 'OFF';
-const slotsLabel = row => row.kind === 'prefill' || row.kind === 'manual_prefill' ? 'Prefill' : row.slots === null ? '并发未提供' : '×' + row.slots;
-const resultStatus = { ok: '完成', partial: '部分失败', failed: '失败' };
+const flag = value => value === null || value === undefined ? t('未提供') : value ? 'ON' : 'OFF';
+const slotsLabel = row => row.kind === 'prefill' || row.kind === 'manual_prefill' ? 'Prefill' : row.slots === null ? t('并发未提供') : '×' + row.slots;
+const resultLabel = status => t(({ ok: '完成', partial: '部分失败', failed: '失败' })[status] || '未提供');
 const statusNames = { forwarding: '转发中', pending_review: '待审核', archiving: '归档中', published: '已归档', rejected: '已退回', delivery_failed: '转发失败', triaged: '已归组', investigating: '排查中', resolved: '已修复' };
-const button = (action, text, name, cls = '', extra = '') => `<button class="button ${cls}" data-action="${action}" ${extra}>${icon(name)}${escape(text)}</button>`;
-const iconButton = (action, name, title, extra = '') => `<button class="icon-button" data-action="${action}" title="${escape(title)}" aria-label="${escape(title)}" ${extra}>${icon(name)}</button>`;
+const button = (action, text, name, cls = '', extra = '') => `<button class="button ${cls}" data-action="${action}" ${extra}>${icon(name)}${escape(t(text))}</button>`;
+const iconButton = (action, name, title, extra = '') => `<button class="icon-button" data-action="${action}" title="${escape(t(title))}" aria-label="${escape(t(title))}" ${extra}>${icon(name)}</button>`;
 const tag = (text, color = '') => `<span class="tag ${color}">${escape(text)}</span>`;
 const stateTag = status => tag(statusNames[status] || status, status === 'published' || status === 'resolved' ? 'mint' : ['rejected', 'delivery_failed'].includes(status) ? 'red' : 'amber');
-const heading = (title, eyebrow, subtitle, actions = '') => `<div class="heading"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p class="subtitle">${subtitle}</p></div><div class="actions">${actions}</div></div>`;
-const stat = (label, value, unit, foot) => `<div class="stat"><div class="stat-label">${label}</div><div class="stat-value">${value}<small>${unit}</small></div><div class="stat-foot">${foot}</div></div>`;
-const empty = (title, text, name = 'folder-open') => `<div class="empty">${icon(name)}<h2>${title}</h2><p>${text}</p></div>`;
+const heading = (title, eyebrow, subtitle, actions = '') => `<div class="heading"><div><div class="eyebrow">${eyebrow}</div><h1>${t(title)}</h1><p class="subtitle">${t(subtitle)}</p></div><div class="actions">${actions}</div></div>`;
+const stat = (label, value, unit, foot) => `<div class="stat"><div class="stat-label">${t(label)}</div><div class="stat-value">${value}<small>${unit}</small></div><div class="stat-foot">${foot}</div></div>`;
+const empty = (title, text, name = 'folder-open') => `<div class="empty">${icon(name)}<h2>${t(title)}</h2><p>${text}</p></div>`;
 const storageKey = 'moe4all-submission-receipts-v1';
 const blankFilters = () => ({ model: [], gpu: [], context: [], contextMode: 'range', contextMin: '', contextMax: '', slots: [], strategy: [], ram: [], vram: [], ramMin: '', ramMax: '', vramMin: '', vramMax: '', engine: [], mtp: [], kv: [], os: [], status: [], search: '' });
 let receipts = [];
@@ -61,7 +65,7 @@ function showUploadFeedback(focus = false) {
   if (focus && e) { panel.focus({ preventScroll: true }); panel.scrollIntoView({ block: 'nearest' }); }
 }
 function icons() { window.lucide?.createIcons(); }
-function toast(text) { clearTimeout(toastTimer); $('#toast').textContent = text; $('#toast').classList.add('visible'); toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 4200); }
+function toast(text) { clearTimeout(toastTimer); $('#toast').textContent = t(text); $('#toast').classList.add('visible'); toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 4200); }
 function persistReceipts() { try { localStorage.setItem(storageKey, JSON.stringify(receipts)); } catch { toast('浏览器无法保存回执，请下载一份到本地'); } }
 function download(name, value, type = 'application/json') { const url = URL.createObjectURL(new Blob([value], { type })), a = document.createElement('a'); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
 async function api(path, options = {}) {
@@ -71,7 +75,12 @@ async function api(path, options = {}) {
 const post = (path, value, token, stage) => api(path, { method: 'POST', stage, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(value) });
 function shell() {
   clearTimeout(receiptTimer);
-  $('#app').innerHTML = `<aside class="sidebar"><a class="brand" href="index.html"><img src="../assets/favicon.svg" alt="" width="33" height="33"><span>MoE4All<small>LAB / 实测与诊断</small></span></a><div class="rail-title"><span class="signal"></span> COMMUNITY WORKSPACE</div><nav aria-label="社区导航"><div class="nav-label">社区数据</div><a class="nav-item ${state.page === 'benchmarks' ? 'active' : ''}" href="index.html">${icon('blocks')}性能排行榜</a><div class="nav-label">参与共建</div><a class="nav-item ${state.page === 'upload' || state.page === 'confirmation' ? 'active' : ''}" href="upload.html">${icon('arrow-up')}提交报告</a><a class="nav-item ${state.page === 'receipts' ? 'active' : ''}" href="index.html#receipts">${icon('folder-open')}我的回执</a><div class="nav-label">维护者</div>${publicPr ? '<a class="nav-item" href="https://github.com/Headmaster218/MoE4All/pulls" target="_blank" rel="noopener noreferrer">' + icon('github') + 'GitHub PR</a>' : '<a class="nav-item" href="admin.html">' + icon('shield-check') + '审核中心</a>'}</nav><div class="sidebar-bottom"><p><span class="signal"></span>MOE4ALL-SUBMISSION/1</p></div></aside><div class="shell"><header class="topbar"><div class="workspace-nav">${iconButton('menu', 'menu', '展开导航')}<a class="technical-return" href="../technical.html">${icon('arrow-left')}<span>返回技术页</span></a></div><div class="topbar-actions"><button class="toolbar-command" data-download title="下载 MoE4All" aria-label="下载 MoE4All">${icon('download')}<span class="toolbar-label">下载</span></button><button class="toolbar-command" data-support title="支持项目" aria-label="支持项目">${icon('coffee')}<span class="toolbar-label">支持项目</span></button><button class="toolbar-command" data-contact title="联系我们" aria-label="联系我们">${icon('message-square')}<span class="toolbar-label">联系我们</span></button></div></header><main id="main" tabindex="-1"></main><footer class="app-footer"><span>MoE4All LAB / HARDWARE IS NOT THE LIMIT.</span><span>MOE4ALL-SUBMISSION/1 · .m4b / .m4e</span></footer></div><div id="compare-tray" class="compare-tray" hidden></div>`;
+  document.documentElement.lang = language === 'en' ? 'en' : 'zh-CN';
+  document.title = t(state.page === 'benchmarks' ? '性能排行榜 · MoE4All' : '提交报告 · MoE4All Lab');
+  $('.skip').textContent = t('跳到正文');
+  $('#detail-dialog').setAttribute('aria-label', t('报告详情'));
+  window.MoeSite?.renderReleases(language);
+  $('#app').innerHTML = ui`<aside class="sidebar"><a class="brand" href="../index.html" aria-label="MoE4All Home"><img src="../assets/favicon.svg" alt="" width="33" height="33"><span>MoE4All<small>LAB / 实测与诊断</small></span></a><div class="rail-title"><span class="signal"></span> COMMUNITY WORKSPACE</div><nav aria-label="社区导航"><div class="nav-label">社区数据</div><a class="nav-item ${state.page === 'benchmarks' ? 'active' : ''}" href="index.html">${icon('blocks')}性能排行榜</a><div class="nav-label">参与共建</div><a class="nav-item ${state.page === 'upload' || state.page === 'confirmation' ? 'active' : ''}" href="upload.html">${icon('arrow-up')}提交报告</a><a class="nav-item ${state.page === 'receipts' ? 'active' : ''}" href="index.html#receipts">${icon('folder-open')}我的回执</a><div class="nav-label">维护者</div>${publicPr ? '<a class="nav-item" href="https://github.com/Headmaster218/MoE4All/pulls" target="_blank" rel="noopener noreferrer">' + icon('github') + 'GitHub PR</a>' : '<a class="nav-item" href="admin.html">' + icon('shield-check') + t('审核中心') + '</a>'}</nav><div class="sidebar-bottom"><p><span class="signal"></span>MOE4ALL-SUBMISSION/1</p></div></aside><div class="shell"><header class="topbar"><div class="workspace-nav">${iconButton('menu', 'menu', '展开导航')}<a class="technical-return" href="../technical.html">${icon('arrow-left')}<span>返回技术页</span></a></div><div class="topbar-actions"><button id="language-toggle" ${state.page === 'benchmarks' ? '' : 'hidden'} class="toolbar-command" data-action="language" title="${language === 'en' ? '切换到中文' : 'Switch to English'}" aria-label="${language === 'en' ? '切换到中文' : 'Switch to English'}">${icon('languages')}<span>${language === 'en' ? '中' : 'EN'}</span></button><button class="toolbar-command" data-download title="下载 MoE4All" aria-label="下载 MoE4All">${icon('download')}<span class="toolbar-label">下载</span></button><button class="toolbar-command" data-support title="支持项目" aria-label="支持项目">${icon('coffee')}<span class="toolbar-label">支持项目</span></button><button class="toolbar-command" data-contact title="联系我们" aria-label="联系我们">${icon('message-square')}<span class="toolbar-label">联系我们</span></button></div></header><main id="main" tabindex="-1"></main><footer class="app-footer"><span>MoE4All LAB / HARDWARE IS NOT THE LIMIT.</span><span>MOE4ALL-SUBMISSION/1 · .m4b / .m4e</span></footer></div><div id="compare-tray" class="compare-tray" hidden></div>`;
 }
 const activeRows = () => filterRows(state.rows, state.filters).sort((a, b) => (b[state.metric] ?? -1) - (a[state.metric] ?? -1) || a.id.localeCompare(b.id));
 function selectMetric(metric) {
@@ -79,45 +88,46 @@ function selectMetric(metric) {
   state.filters.slots = []; state.selected = ''; state.compare = []; state.pageNumber = 1;
 }
 function detailList(row) {
-  const list = pairs => `<dl class="details">${pairs.map(([k, v]) => `<dt>${k}</dt><dd>${escape(v ?? '未提供')}</dd>`).join('')}</dl>`;
-  const span = (min, max) => min === null || min === undefined ? '未提供' : min === max ? contextLabel(min) : contextLabel(min) + '–' + contextLabel(max);
-  const link = (generation, width) => generation === null || generation === undefined || width === null || width === undefined ? '未提供' : `PCIe ${generation}.0 ×${width}`;
+  const missing = t('未提供'), shown = value => value ?? missing;
+  const list = pairs => `<dl class="details">${pairs.map(([k, v]) => `<dt>${t(k)}</dt><dd>${escape(shown(v))}</dd>`).join('')}</dl>`;
+  const span = (min, max) => min === null || min === undefined ? missing : min === max ? contextLabel(min) : contextLabel(min) + '–' + contextLabel(max);
+  const link = (generation, width) => generation === null || generation === undefined || width === null || width === undefined ? missing : `PCIe ${generation}.0 ×${width}`;
   const cache = { mostly_physical: '主要为物理读', mostly_cached: '主要命中文件缓存', mixed: '混合读取' };
-  return list([['模型', row.model], ['量化', row.quant], ['上下文 / 条件', contextLabel(row.context) + ' / ' + slotsLabel(row)], ['显存 / RAM', gib(row.vram_bytes) + ' / ' + gib(row.ram_bytes)], ['CPU', row.cpu], ['系统 / Backend', (row.os || '未提供') + ' / ' + (row.backend || '未提供')], ['KV · K / V', (row.kv_k || '未提供') + ' / ' + (row.kv_v || '未提供')], ['MTP', flag(row.mtp)], ['Ubatch · 配置 / 实际', (row.configured_ubatch ?? '未提供') + ' / ' + (row.actual_ubatch ?? '未提供')], ['引擎版本', row.engine], ['配置策略', strategyNames[strategyOf(row)]], ['完成 / 请求轮次', (row.rounds ?? '未提供') + ' / ' + (row.requested_rounds ?? '未提供')], ['测量结果', resultStatus[row.status] || '未提供']]) +
-    `<details class="hardware-details"><summary>硬件与测试条件</summary>${list([['实际 prompt', span(row.prompt_min, row.prompt_max)], ['Decode 计分开始', span(row.start_min, row.start_max)], ['Decode 计分结束', span(row.end_min, row.end_max)], ['测试深度', ({ real: '真实上下文', synthetic: 'Synthetic', none: '无预置深度' })[row.depth_mode] || '未提供'], ['测量协议', row.profile], ['内存', [row.ram_generation, row.ram_speeds?.length ? row.ram_speeds.join(' / ') + ' MT/s' : null].filter(Boolean).join(' · ') || '未提供'], ['统一内存', flag(row.unified_memory)], ['PCIe · 当前', link(row.pcie_generation, row.pcie_width)], ['PCIe · 最大', link(row.pcie_max_generation, row.pcie_max_width)], ['模型盘', row.storage_model], ['介质 / 总线', (row.storage_type || '未提供') + ' / ' + (row.storage_bus || '未提供')], ['顺序读 · 应用可见', row.storage_seq === null || row.storage_seq === undefined ? '未提供' : fmt(row.storage_seq) + ' MiB/s'], ['Random 64K', row.storage_random === null || row.storage_random === undefined ? '未提供' : fmt(row.storage_random) + ' MiB/s'], ['读测缓存情况', cache[row.storage_cache] || '未提供'], ['物理读取占比', row.storage_physical_fraction === null || row.storage_physical_fraction === undefined ? '未提供' : fmt(row.storage_physical_fraction * 100) + '%'], ['RAM / VRAM 配置预算', (row.ram_budget || '未提供') + ' / ' + (row.vram_budget || '未提供')], ['Host DMA', flag(row.host_dma)], ['Submit cap', row.submit_cap], ['失败阶段', row.failure_stages?.join(' / ') || '无已记录失败']])}</details>`;
+  return list([['模型', row.model], ['量化', row.quant], ['上下文 / 条件', contextLabel(row.context) + ' / ' + slotsLabel(row)], ['显存 / RAM', gib(row.vram_bytes) + ' / ' + gib(row.ram_bytes)], ['CPU', row.cpu], ['系统 / Backend', (row.os || missing) + ' / ' + (row.backend || missing)], ['KV · K / V', (row.kv_k || missing) + ' / ' + (row.kv_v || missing)], ['MTP', flag(row.mtp)], ['Ubatch · 配置 / 实际', shown(row.configured_ubatch) + ' / ' + shown(row.actual_ubatch)], ['引擎版本', row.engine], ['配置策略', strategyLabel(row)], ['完成 / 请求轮次', shown(row.rounds) + ' / ' + shown(row.requested_rounds)], ['测量结果', resultLabel(row.status) || missing]]) +
+    ui`<details class="hardware-details"><summary>硬件与测试条件</summary>${list([['实际 prompt', span(row.prompt_min, row.prompt_max)], ['Decode 计分开始', span(row.start_min, row.start_max)], ['Decode 计分结束', span(row.end_min, row.end_max)], ['测试深度', t(({ real: '真实上下文', synthetic: 'Synthetic', none: '无预置深度' })[row.depth_mode] || '未提供')], ['测量协议', row.profile], ['内存', [row.ram_generation, row.ram_speeds?.length ? row.ram_speeds.join(' / ') + ' MT/s' : null].filter(Boolean).join(' · ') || missing], ['统一内存', flag(row.unified_memory)], ['PCIe · 当前', link(row.pcie_generation, row.pcie_width)], ['PCIe · 最大', link(row.pcie_max_generation, row.pcie_max_width)], ['模型盘', row.storage_model], ['介质 / 总线', (row.storage_type || missing) + ' / ' + (row.storage_bus || missing)], ['顺序读 · 应用可见', row.storage_seq === null || row.storage_seq === undefined ? missing : fmt(row.storage_seq) + ' MiB/s'], ['Random 64K', row.storage_random === null || row.storage_random === undefined ? missing : fmt(row.storage_random) + ' MiB/s'], ['读测缓存情况', cache[row.storage_cache] ? t(cache[row.storage_cache]) : missing], ['物理读取占比', row.storage_physical_fraction === null || row.storage_physical_fraction === undefined ? missing : fmt(row.storage_physical_fraction * 100) + '%'], ['RAM / VRAM 配置预算', (row.ram_budget || missing) + ' / ' + (row.vram_budget || missing)], ['Host DMA', flag(row.host_dma)], ['Submit cap', row.submit_cap], ['失败阶段', row.failure_stages?.join(' / ') || t('无已记录失败')]])}</details>`;
 }
 function spark(row) {
   if (!Array.isArray(row.sections)) return '';
   const max = Math.max(...row.sections) * 1.1 || 1, min = Math.min(...row.sections) * .9, points = row.sections.map((n, i) => `${15 + i * 110},${80 - (n - min) / (max - min) * 65}`).join(' ');
-  return `<svg class="spark" viewBox="0 0 250 110" role="img" aria-label="前中后段 Decode 实测"><path d="M15 20H235M15 50H235M15 80H235" stroke="var(--line)" stroke-dasharray="3 4" fill="none"/><polyline points="${points}" stroke="var(--mint)" stroke-width="2" fill="none"/>${row.sections.map((n, i) => `<text x="${15 + i * 110}" y="105" fill="var(--muted)" text-anchor="${i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}" font-size="10">${['前段', '中段', '后段'][i]}</text>`).join('')}</svg>`;
+  return ui`<svg class="spark" viewBox="0 0 250 110" role="img" aria-label="前中后段 Decode 实测"><path d="M15 20H235M15 50H235M15 80H235" stroke="var(--line)" stroke-dasharray="3 4" fill="none"/><polyline points="${points}" stroke="var(--mint)" stroke-width="2" fill="none"/>${row.sections.map((n, i) => `<text x="${15 + i * 110}" y="105" fill="var(--muted)" text-anchor="${i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}" font-size="10">${t(['前段', '中段', '后段'][i])}</text>`).join('')}</svg>`;
 }
 function inspector(row) {
-  if (!row) return empty('暂无样本', '选择一条记录查看条件');
+  if (!row) return empty('暂无样本', t('选择一条记录查看条件'));
   const links = state.index ? provenanceLinks(state.index, row) : null;
-  const source = links ? `<div class="source-actions"><a class="button small" data-provenance="view" href="${escape(links.view)}" target="_blank" rel="noopener noreferrer">${icon('code-xml')}查看原件</a><a class="button small" data-provenance="download" href="${escape(links.download)}" target="_blank" rel="noopener noreferrer">${icon('download')}下载 .m4b</a></div>` : '';
-  return `<div class="section-label">SAMPLE INSPECTOR ${iconButton('sample', 'arrow-up-right', '打开样本详情', `data-id="${escape(row.id)}"`)}</div><h2 class="inspect-device">${escape(row.gpu)}</h2><div class="tags">${tag(strategyNames[strategyOf(row)], 'blue')}${tag(contextLabel(row.context) + ' · ' + slotsLabel(row))}${row.status !== 'ok' ? tag(resultStatus[row.status], row.status === 'failed' ? 'red' : 'amber') : ''}</div><div class="inspect-score">${fmt(row[state.metric])}<small>tok/s</small></div>${spark(row)}${detailList(row)}<div class="inspect-foot">${escape(row.report_id)}<br>${escape(row.date || '')}<br>${row.demo ? '本地演示样本' : '社区提交 · 未独立复测'}</div>${source}`;
+  const source = links ? ui`<div class="source-actions"><a class="button small" data-provenance="view" href="${escape(links.view)}" target="_blank" rel="noopener noreferrer">${icon('code-xml')}查看原件</a><a class="button small" data-provenance="download" href="${escape(links.download)}" target="_blank" rel="noopener noreferrer">${icon('download')}下载 .m4b</a></div>` : '';
+  return `<div class="section-label">SAMPLE INSPECTOR ${iconButton('sample', 'arrow-up-right', '打开样本详情', `data-id="${escape(row.id)}"`)}</div><h2 class="inspect-device">${escape(row.gpu)}</h2><div class="tags">${tag(strategyLabel(row), 'blue')}${tag(contextLabel(row.context) + ' · ' + slotsLabel(row))}${row.status !== 'ok' ? tag(resultLabel(row.status), row.status === 'failed' ? 'red' : 'amber') : ''}</div><div class="inspect-score">${fmt(row[state.metric])}<small>tok/s</small></div>${spark(row)}${detailList(row)}<div class="inspect-foot">${escape(row.report_id)}<br>${escape(row.date || '')}<br>${t(row.demo ? '本地演示样本' : '社区提交 · 未独立复测')}</div>${source}`;
 }
 function table(rows) {
   state.pageNumber = Math.max(1, Math.min(state.pageNumber, Math.ceil(rows.length / 8) || 1));
   const offset = (state.pageNumber - 1) * 8, part = rows.slice(offset, offset + 8);
   const body = part.map((r, i) => `<tr class="${state.selected === r.id ? 'selected' : ''}" data-row="${escape(r.id)}" tabindex="0" aria-selected="${state.selected === r.id}">
-    <td><input type="checkbox" data-compare="${escape(r.id)}" aria-label="对比 ${escape(r.gpu)}" ${state.compare.includes(r.id) ? 'checked' : ''}></td>
+    <td><input type="checkbox" data-compare="${escape(r.id)}" aria-label="${t('对比')} ${escape(r.gpu)}" ${state.compare.includes(r.id) ? 'checked' : ''}></td>
     <td class="rank">${String(offset + i + 1).padStart(2, '0')}</td>
-    <td><button class="sort device" data-action="sample" data-id="${escape(r.id)}">${escape(r.gpu)}</button><div class="device-sub">${escape(r.backend || '未提供 Backend')} · ${escape(r.os || '未提供系统')} · v${escape(r.engine)}<br>${escape(modelLabel(r.model))} · ${contextLabel(r.context)} / ${slotsLabel(r)} · MTP ${flag(r.mtp)}<br>${escape(strategyNames[strategyOf(r)])}${r.profile === 'manual' ? ' · 手动实测' : ''}</div></td>
-    <td><span class="number">${fmt(r.decode)}</span><div class="device-sub">${r.sections ? '后段 ' + fmt(r.sections[2]) + ' tok/s' : state.metric === 'decode' ? resultStatus[r.status] : '—'}</div></td>
-    <td><span class="number secondary">${fmt(r.prefill)}</span><div class="device-sub">${state.metric === 'prefill' && r.status !== 'ok' ? resultStatus[r.status] : 'tok/s'}</div></td>
+    <td><button class="sort device" data-action="sample" data-id="${escape(r.id)}">${escape(r.gpu)}</button><div class="device-sub">${escape(r.backend || t('未提供 Backend'))} · ${escape(r.os || t('未提供系统'))} · v${escape(r.engine)}<br>${escape(modelLabel(r.model))} · ${contextLabel(r.context)} / ${slotsLabel(r)} · MTP ${flag(r.mtp)}<br>${escape(strategyLabel(r))}${r.profile === 'manual' ? ' · ' + t('手动实测') : ''}</div></td>
+    <td><span class="number">${fmt(r.decode)}</span><div class="device-sub">${r.sections ? t('后段') + ' ' + fmt(r.sections[2]) + ' tok/s' : state.metric === 'decode' ? resultLabel(r.status) : '—'}</div></td>
+    <td><span class="number secondary">${fmt(r.prefill)}</span><div class="device-sub">${state.metric === 'prefill' && r.status !== 'ok' ? resultLabel(r.status) : 'tok/s'}</div></td>
     <td><span class="mono">${gib(r.vram_bytes)}</span><div class="device-sub">${gib(r.ram_bytes)} RAM</div></td>
-    <td><span class="source-name">${r.demo ? '本地演示' : '社区提交'}</span><div class="device-sub">${escape(r.date?.slice(0, 10) || '已收录')}</div></td></tr>`).join('');
-  return `<div class="table-scroll"><table class="data-table"><colgroup><col class="col-check"><col class="col-rank"><col class="col-device"><col class="col-rate"><col class="col-rate"><col class="col-memory"><col class="col-source"></colgroup><thead><tr><th>±</th><th>#</th><th>设备 / 环境</th><th><button class="sort" data-action="sort" data-metric="decode" aria-pressed="${state.metric === 'decode'}">Decode ${icon('arrow-down')}</button></th><th><button class="sort" data-action="sort" data-metric="prefill" aria-pressed="${state.metric === 'prefill'}">Prefill ${icon('arrow-down')}</button></th><th>VRAM / RAM</th><th>来源</th></tr></thead><tbody>${body}</tbody></table></div>${!rows.length ? empty('这个条件下还没有样本', '换个筛选条件，或提交你的第一份实测', 'search') : ''}<div class="table-footer"><span>社区提交 · 对比需保持测试条件一致</span><div class="pager"><span>${rows.length ? offset + 1 : 0}–${Math.min(offset + 8, rows.length)} / ${rows.length}</span>${iconButton('prev', 'arrow-left', '上一页', state.pageNumber <= 1 ? 'disabled' : '')}${iconButton('next', 'arrow-up-right', '下一页', offset + 8 >= rows.length ? 'disabled' : '')}</div></div>`;
+    <td><span class="source-name">${t(r.demo ? '本地演示' : '社区提交')}</span><div class="device-sub">${escape(r.date?.slice(0, 10) || t('已收录'))}</div></td></tr>`).join('');
+  return ui`<div class="table-scroll"><table class="data-table"><colgroup><col class="col-check"><col class="col-rank"><col class="col-device"><col class="col-rate"><col class="col-rate"><col class="col-memory"><col class="col-source"></colgroup><thead><tr><th>±</th><th>#</th><th>设备 / 环境</th><th><button class="sort" data-action="sort" data-metric="decode" aria-pressed="${state.metric === 'decode'}">Decode ${icon('arrow-down')}</button></th><th><button class="sort" data-action="sort" data-metric="prefill" aria-pressed="${state.metric === 'prefill'}">Prefill ${icon('arrow-down')}</button></th><th>VRAM / RAM</th><th>来源</th></tr></thead><tbody>${body}</tbody></table></div>${!rows.length ? empty('这个条件下还没有样本', t('换个筛选条件，或提交你的第一份实测'), 'search') : ''}<div class="table-footer"><span>社区提交 · 对比需保持测试条件一致</span><div class="pager"><span>${rows.length ? offset + 1 : 0}–${Math.min(offset + 8, rows.length)} / ${rows.length}</span>${iconButton('prev', 'arrow-left', '上一页', state.pageNumber <= 1 ? 'disabled' : '')}${iconButton('next', 'arrow-up-right', '下一页', offset + 8 >= rows.length ? 'disabled' : '')}</div></div>`;
 }
 function renderBenchmarks() {
   const rows = activeRows();
   if (!rows.some(r => r.id === state.selected)) state.selected = rows[0]?.id || '';
   const models = filterValues(state.filters.model), selectedModels = models.length ? models : [...new Set(state.rows.map(r => r.model))];
-  const strategies = filterValues(state.filters.strategy), title = selectedModels.length === 1 ? modelLabel(selectedModels[0]) : `${selectedModels.length} 个模型 · 跨条件浏览`;
+  const strategies = filterValues(state.filters.strategy), title = selectedModels.length === 1 ? modelLabel(selectedModels[0]) : ui`${selectedModels.length} 个模型 · 跨条件浏览`;
   const peak = rows.find(row => row[state.metric] !== null), info = state.dataInfo;
-  const status = `<div class="dataset-status">${tag(preview ? '本地演示数据' : info?.stale ? '离线缓存' : 'Git 数据快照', preview || info?.stale ? 'amber' : 'mint')}<span>${state.index?.reports.length ?? 0} 份报告 · ${escape(info?.manifest.version.slice(0, 10) || '')}</span>${info?.stale ? '<span>新版本暂时不可用，当前为已校验的缓存版本</span>' : ''}</div>`;
-  $('#main').innerHTML = heading('性能排行榜', 'BENCHMARK EXPLORER', '把闲置的算力，变成下一份参考答案。', button('export-csv', '导出表格', 'download') + '<a class="button primary" href="upload.html">' + icon('plus') + '提交实测</a>') + status + `<div class="band">${stat('筛选结果', String(rows.length).padStart(2, '0'), 'RUNS', `共 ${state.rows.length} 条${state.metric === 'decode' ? ' Decode' : ' Prefill'}记录`)}${stat('覆盖设备', String(new Set(rows.map(r => r.gpu)).size).padStart(2, '0'), 'DEVICES', 'GPU 与统一内存设备')}${stat('最高 ' + (state.metric === 'decode' ? 'Decode' : 'Prefill'), fmt(peak?.[state.metric]), 'tok/s', state.metric === 'decode' ? '当前筛选 · 并发总吞吐量' : '当前筛选 · 每上下文一份实测')}${stat('配置策略', strategies.length === 1 ? strategyNames[strategies[0]] : '全部策略', '', '自动激进 / 自动保守 / 手动配置')}</div>${filterPanel()}<div class="workspace"><section><div class="cohort"><div class="eyebrow">RESULTS / 筛选结果</div><h2>${escape(title)}</h2><div class="tags">${tag(`${rows.length} 条记录`, 'mint')}${tag(state.metric === 'decode' ? '按 Decode 排序' : '按 Prefill 排序')}${tag(state.metric === 'decode' ? '并发总吞吐量 · tok/s' : 'Prefill · tok/s')}</div></div><div id="run-table">${table(rows)}</div></section><aside class="inspector" id="inspector">${inspector(rows.find(r => r.id === state.selected))}</aside></div>`;
+  const status = ui`<div class="dataset-status">${tag(t(preview ? '本地演示数据' : info?.stale ? '离线缓存' : 'Git 数据快照'), preview || info?.stale ? 'amber' : 'mint')}<span>${state.index?.reports.length ?? 0} 份报告 · ${escape(info?.manifest.version.slice(0, 10) || '')}</span>${info?.stale ? ui`<span>新版本暂时不可用，当前为已校验的缓存版本</span>` : ''}</div>`;
+  $('#main').innerHTML = heading('性能排行榜', 'BENCHMARK EXPLORER', '把闲置的算力，变成下一份参考答案。', button('export-csv', '导出表格', 'download') + ui`<a class="button primary" href="upload.html">${icon('plus')}提交实测</a>`) + status + ui`<div class="band">${stat('筛选结果', String(rows.length).padStart(2, '0'), 'RUNS', language === 'en' ? `Total: ${state.rows.length} ${state.metric === 'decode' ? 'Decode' : 'Prefill'} records` : `共 ${state.rows.length} 条${state.metric === 'decode' ? ' Decode' : ' Prefill'}记录`)}${stat('覆盖设备', String(new Set(rows.map(r => r.gpu)).size).padStart(2, '0'), 'DEVICES', t('GPU 与统一内存设备'))}${stat('最高 ' + (state.metric === 'decode' ? 'Decode' : 'Prefill'), fmt(peak?.[state.metric]), 'tok/s', t(state.metric === 'decode' ? '当前筛选 · 并发总吞吐量' : '当前筛选 · 每上下文一份实测'))}${stat('配置策略', t(strategies.length === 1 ? strategyNames[strategies[0]] : '全部策略'), '', t('自动激进 / 自动保守 / 手动配置'))}</div>${filterPanel()}<div class="workspace"><section><div class="cohort"><div class="eyebrow">RESULTS / 筛选结果</div><h2>${escape(title)}</h2><div class="tags">${tag(ui`${rows.length} 条记录`, 'mint')}${tag(t(state.metric === 'decode' ? '按 Decode 排序' : '按 Prefill 排序'))}${tag(t(state.metric === 'decode' ? '并发总吞吐量 · tok/s' : 'Prefill · tok/s'))}</div></div><div id="run-table">${table(rows)}</div></section><aside class="inspector" id="inspector">${inspector(rows.find(r => r.id === state.selected))}</aside></div>`;
   renderTray(); icons();
 }
 function selectRow(id) {
@@ -149,15 +159,15 @@ function facets() {
     ['kv', 'KV Cache', [...new Set(state.rows.map(r => `${r.kv_k || '?'}/${r.kv_v || '?'}`))].map(v => [v, v.toUpperCase()])],
     ['os', '系统', unique('os').map(v => [v, ({ windows: 'Windows', linux: 'Linux', macos: 'macOS' })[v] || v])],
     ['engine', '引擎版本', unique('engine').sort().reverse().map(v => [v, 'v' + v])],
-    ['status', '结果', unique('status').map(v => [v, resultStatus[v] || '未提供'])]
-  ];
+    ['status', '结果', unique('status').map(v => [v, resultLabel(v) || '未提供'])]
+  ].map(([key, label, options]) => [key, t(label), ['strategy', 'mtp', 'status', 'slots', 'ram', 'vram'].includes(key) ? options.map(([value, text]) => [value, t(text)]) : options]);
 }
 function filterPanel() {
   const groups = facets(), ranges = ['context', 'ram', 'vram'].filter(key => (key !== 'context' || state.filters.contextMode === 'range') && (state.filters[key + 'Min'] !== '' || state.filters[key + 'Max'] !== ''));
   const count = groups.reduce((sum, [key]) => sum + (key === 'context' && state.filters.contextMode === 'range' ? 0 : filterValues(state.filters[key]).length), ranges.length);
-  const selected = groups.flatMap(([key, label, options]) => key === 'context' && state.filters.contextMode === 'range' ? [] : options.filter(([value]) => filterValues(state.filters[key]).includes(String(value))).map(([value, text]) => `<button class="active-filter" data-action="remove-filter" data-key="${key}" data-value="${escape(value)}" title="移除 ${escape(label + '：' + text)}"><span>${escape(label)} <strong>${escape(text)}</strong></span>${icon('x')}</button>`));
-  for (const key of ranges) selected.push(`<button class="active-filter" data-action="clear-range" data-key="${key}" title="移除范围"><span>${key === 'context' ? '上下文' : key.toUpperCase()} <strong>${escape(rangeLabel(key))}</strong></span>${icon('x')}</button>`);
-  return `<section class="filter-workspace" aria-label="筛选性能记录"><div class="filter-toolbar"><label class="search">${icon('search')}<input type="search" id="search" value="${escape(state.filters.search)}" placeholder="搜索 GPU、CPU 或模型" aria-label="搜索设备"></label><div class="actions">${button('toggle-filters', '筛选' + (count ? ' · ' + count : ''), 'sliders-horizontal', '', `aria-expanded="${state.filtersOpen}" aria-controls="facet-panel"`)}${button('reset-filters', '清空条件', 'rotate-ccw', '', count || state.filters.search ? '' : 'disabled')}</div></div><div class="facet-panel" id="facet-panel" ${state.filtersOpen ? '' : 'hidden'}>${groups.map(([key, label, options]) => {
+  const selected = groups.flatMap(([key, label, options]) => key === 'context' && state.filters.contextMode === 'range' ? [] : options.filter(([value]) => filterValues(state.filters[key]).includes(String(value))).map(([value, text]) => ui`<button class="active-filter" data-action="remove-filter" data-key="${key}" data-value="${escape(value)}" title="移除 ${escape(label + '：' + text)}"><span>${escape(label)} <strong>${escape(text)}</strong></span>${icon('x')}</button>`));
+  for (const key of ranges) selected.push(ui`<button class="active-filter" data-action="clear-range" data-key="${key}" title="移除范围"><span>${key === 'context' ? t('上下文') : key.toUpperCase()} <strong>${escape(rangeLabel(key))}</strong></span>${icon('x')}</button>`);
+  return ui`<section class="filter-workspace" aria-label="筛选性能记录"><div class="filter-toolbar"><label class="search">${icon('search')}<input type="search" id="search" value="${escape(state.filters.search)}" placeholder="搜索 GPU、CPU 或模型" aria-label="搜索设备"></label><div class="actions">${button('toggle-filters', '筛选' + (count ? ' · ' + count : ''), 'sliders-horizontal', '', `aria-expanded="${state.filtersOpen}" aria-controls="facet-panel"`)}${button('reset-filters', '清空条件', 'rotate-ccw', '', count || state.filters.search ? '' : 'disabled')}</div></div><div class="facet-panel" id="facet-panel" ${state.filtersOpen ? '' : 'hidden'}>${groups.map(([key, label, options]) => {
     const base = filterRows(state.rows, { ...state.filters, [key]: [], [key + 'Min']: '', [key + 'Max']: '' });
     if (key === 'context') return contextFacet(base, options);
     return `<fieldset class="facet facet-${key}"><legend>${label}</legend>${facetChoices(key, options, base)}${['ram', 'vram'].includes(key) ? rangeForm(key) : ''}</fieldset>`;
@@ -186,7 +196,7 @@ function rangeForm(key) {
   const clamp = value => Math.max(floor, Math.min(ceiling, value));
   const min = state.filters[key + 'Min'] === '' ? floor : clamp(Number(state.filters[key + 'Min'])), max = state.filters[key + 'Max'] === '' ? ceiling : clamp(Number(state.filters[key + 'Max']));
   const display = value => domain.min === null ? '—' : sliderLabel(key, value);
-  return `<div class="range-control" data-range-control="${key}" data-floor="${floor}" data-ceiling="${ceiling}"><div class="range-readout"><span>下限 <output data-bound="min">${display(min)}</output></span><span>上限 <output data-bound="max">${display(max)}</output></span><small>${unit}</small></div><div class="dual-slider" style="--start:${span ? (min - floor) / span * 100 : 0}%;--end:${span ? (max - floor) / span * 100 : 100}%"><div class="slider-track"></div>${[['min', min], ['max', max]].map(([bound, value]) => `<input type="range" data-slider="${key}" data-bound="${bound}" min="${floor}" max="${ceiling}" step="1" value="${value}" ${span > 0 ? '' : 'disabled'} aria-label="${label}${bound === 'min' ? '下限' : '上限'}（${unit}）" aria-valuetext="${display(value)}">`).join('')}</div></div>`;
+  return ui`<div class="range-control" data-range-control="${key}" data-floor="${floor}" data-ceiling="${ceiling}"><div class="range-readout"><span>下限 <output data-bound="min">${display(min)}</output></span><span>上限 <output data-bound="max">${display(max)}</output></span><small>${unit}</small></div><div class="dual-slider" style="--start:${span ? (min - floor) / span * 100 : 0}%;--end:${span ? (max - floor) / span * 100 : 100}%"><div class="slider-track"></div>${[['min', min], ['max', max]].map(([bound, value]) => `<input type="range" data-slider="${key}" data-bound="${bound}" min="${floor}" max="${ceiling}" step="1" value="${value}" ${span > 0 ? '' : 'disabled'} aria-label="${t(label)} ${t(bound === 'min' ? '下限' : '上限')} (${unit})" aria-valuetext="${display(value)}">`).join('')}</div></div>`;
 }
 const sliderLabel = (key, value) => key === 'context' ? contextLabel(Number(value)) : Number(value).toLocaleString('en-US');
 function readSlider(input) {
@@ -203,12 +213,12 @@ function contextFacet(base, options) {
   const domain = rangeBounds(state.rows, 'context', state.bounds), values = [...new Set([domain.min, ...options.map(([value]) => Number(value)), domain.max])].filter(Number.isFinite).sort((a, b) => a - b);
   const edges = [...new Set([values[0], values[Math.floor((values.length - 1) / 3)], values[Math.ceil((values.length - 1) * 2 / 3)], values.at(-1)])].filter(Number.isFinite);
   const presets = [['', '', '全部'], ...edges.slice(1).map((max, i) => [edges[i] === domain.min ? '' : String(edges[i]), max === domain.max ? '' : String(max), contextLabel(edges[i]) + '–' + contextLabel(max)])];
-  return `<fieldset class="facet facet-context"><legend>上下文 / tokens</legend><div class="context-heading"><div class="context-modes" role="radiogroup" aria-label="上下文筛选方式">${[['range', '范围'], ['points', '档位']].map(([value, label]) => `<label><input type="radio" name="context-mode" value="${value}" ${state.filters.contextMode === value ? 'checked' : ''}><span>${label}</span></label>`).join('')}</div></div>${range ? `<div class="range-presets">${presets.map(([min, max, text]) => `<button type="button" class="range-preset ${state.filters.contextMin === min && state.filters.contextMax === max ? 'selected' : ''}" data-action="context-preset" data-min="${min}" data-max="${max}">${text}</button>`).join('')}</div>${rangeForm('context')}` : facetChoices('context', options, base)}</fieldset>`;
+  return ui`<fieldset class="facet facet-context"><legend>上下文 / tokens</legend><div class="context-heading"><div class="context-modes" role="radiogroup" aria-label="上下文筛选方式">${[['range', '范围'], ['points', '档位']].map(([value, label]) => `<label><input type="radio" name="context-mode" value="${value}" ${state.filters.contextMode === value ? 'checked' : ''}><span>${t(label)}</span></label>`).join('')}</div></div>${range ? `<div class="range-presets">${presets.map(([min, max, text]) => `<button type="button" class="range-preset ${state.filters.contextMin === min && state.filters.contextMax === max ? 'selected' : ''}" data-action="context-preset" data-min="${min}" data-max="${max}">${t(text)}</button>`).join('')}</div>${rangeForm('context')}` : facetChoices('context', options, base)}</fieldset>`;
 }
 function renderTray() {
   const target = $('#compare-tray'); if (!target) return;
   target.hidden = !state.compare.length;
-  target.innerHTML = `<span><span class="mint mono">${state.compare.length}</span> 个同条件样本</span><div class="actions">${button('clear-compare', '清空', 'x', 'small')}${button('compare', '对比', 'arrow-left', 'small primary', state.compare.length < 2 ? 'disabled' : '')}</div>`;
+  target.innerHTML = ui`<span><span class="mint mono">${state.compare.length}</span> 个同条件样本</span><div class="actions">${button('clear-compare', '清空', 'x', 'small')}${button('compare', '对比', 'arrow-left', 'small primary', state.compare.length < 2 ? 'disabled' : '')}</div>`;
 }
 function payloadPreview(decoded) {
   const p = decoded.payload;
@@ -493,6 +503,19 @@ document.addEventListener('click', async event => {
   const target = event.target.closest('[data-action]'); if (!target || target.disabled) return;
   const action = target.dataset.action, id = target.dataset.id;
   try {
+    if (action === 'language') {
+      if (state.page !== 'benchmarks') return;
+      language = language === 'zh' ? 'en' : 'zh';
+      window.MoeSite?.rememberLanguage(language);
+      if (!window.MoeSite) { try { localStorage.setItem('moe4all-language', language); } catch {} }
+      $('#detail-dialog').close();
+      $('#detail-dialog').replaceChildren();
+      shell();
+      if (state.index) renderBenchmarks(); else renderLeaderboardFailure(state.loadError);
+      icons();
+      $('#language-toggle').focus({ preventScroll: true });
+      return;
+    }
     if (action === 'menu') { $('.sidebar').classList.toggle('open'); return; }
     if (action === 'retry-index') { location.reload(); return; }
     if (action === 'toggle-filters') { state.filtersOpen = !state.filtersOpen; renderBenchmarks(); $('[data-action="toggle-filters"]').focus({ preventScroll: true }); return; }
@@ -505,7 +528,7 @@ document.addEventListener('click', async event => {
     if (action === 'prev' || action === 'next') { state.pageNumber += action === 'prev' ? -1 : 1; renderBenchmarks(); }
     if (action === 'sample') { const row = selectRow(id); if (row) openDialog(dialogHeading(row.gpu, 'BENCHMARK SAMPLE') + inspector(row)); }
     if (action === 'clear-compare') { state.compare = []; renderBenchmarks(); }
-    if (action === 'compare') openDialog(dialogHeading('同条件样本对比', 'SIDE BY SIDE') + `<div class="compare-columns" style="--count:${state.compare.length}">${state.compare.map(id => state.rows.find(r => r.id === id)).map(row => `<section><h3>${escape(row.gpu)}</h3><div class="inspect-score">${fmt(row[state.metric])}<small>tok/s</small></div>${spark(row)}${detailList(row)}</section>`).join('')}</div>`);
+    if (action === 'compare') openDialog(dialogHeading(t('同条件样本对比'), 'SIDE BY SIDE') + `<div class="compare-columns" style="--count:${state.compare.length}">${state.compare.map(id => state.rows.find(r => r.id === id)).map(row => `<section><h3>${escape(row.gpu)}</h3><div class="inspect-score">${fmt(row[state.metric])}<small>tok/s</small></div>${spark(row)}${detailList(row)}</section>`).join('')}</div>`);
     if (action === 'export-csv') download('moe4all-public-benchmarks.csv', csv(activeRows()), 'text/csv; charset=utf-8');
     if (action === 'pick') $('#file').click();
     if (action === 'kind' || action === 'clear-file' || action === 'new-upload') { if (state.uploading) return; verifier.dispose(); pendingUploads.clear('upload'); fileSequence++; Object.assign(state, { file: null, decoded: null, header: null, fileError: '', uploaded: null, processing: false, uploadSession: null, uploadError: null, uploadProgress: '' }); if (action === 'kind') state.uploadKind = target.dataset.kind; renderUpload(); }
@@ -555,6 +578,10 @@ window.addEventListener('hashchange', () => {
     state.page = 'confirmation'; state.confirmDone = null; shell(); loadConfirmation();
   } else if (location.hash === '#receipts') { verifier.dispose(); state.page = 'receipts'; shell(); renderReceipts(); }
 });
+function renderLeaderboardFailure(error) {
+  $('#main').innerHTML = empty('排行榜暂时无法加载', escape(error ? t(error.message) : t('读取社区实测…'))) + ui`<div class="actions"><button class="button" data-action="retry-index">${icon('history')}重试</button></div>`;
+  icons();
+}
 shell();
 if (state.page === 'confirmation') await loadConfirmation();
 else if (state.page === 'upload') renderUpload();
@@ -565,12 +592,12 @@ else if (state.page === 'receipts') {
 }
 else if (state.page === 'admin') await loadAdmin();
 else {
-  $('#main').innerHTML = '<div class="loading">读取社区实测…</div>';
+  $('#main').innerHTML = ui`<div class="loading">读取社区实测…</div>`;
   try {
     const result = await loadLeaderboard(new URL(config.leaderboardManifest || 'data/manifest.json', location.href), { repository: config.repository, preview });
     state.index = result.index; state.dataInfo = result;
     selectMetric(indexRows(state.index).length ? 'decode' : 'prefill');
     renderBenchmarks();
   }
-  catch (error) { $('#main').innerHTML = empty('排行榜暂时无法加载', escape(error.message)) + '<div class="actions"><button class="button" data-action="retry-index">' + icon('history') + '重试</button></div>'; icons(); }
+  catch (error) { state.loadError = error; renderLeaderboardFailure(error); }
 }
