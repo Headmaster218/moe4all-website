@@ -23,6 +23,14 @@ test('only UI template fragments are translated; interpolated data and URLs are 
   assert.equal(html`模型 ${name}`, `模型 ${name}`);
 });
 
+test('benchmark capacity and budget labels explicitly separate budgets from measured usage', () => {
+  const { text } = createLocale(() => 'en');
+  assert.equal(text('引擎内存预算'), 'Engine memory budgets');
+  assert.equal(text('非实测占用'), 'Not measured usage');
+  assert.equal(text('预算是 RAM 目标和 VRAM 分配上限，不是实测占用'), 'RAM target and VRAM allocation ceiling; not measured usage');
+  assert.equal(text('英伟达 / 英特尔 / 其他'), 'NVIDIA / Intel / Other');
+});
+
 test('all authored leaderboard loader errors have English translations', async () => {
   const { text } = createLocale(() => 'en');
   const source = await readFile(new URL('../community/leaderboard-loader.mjs', import.meta.url), 'utf8');

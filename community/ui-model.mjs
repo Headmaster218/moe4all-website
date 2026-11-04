@@ -15,6 +15,54 @@ export const filterValues = value => (Array.isArray(value) ? value : value === u
 export const modelKey = value => String(value ?? '').trim().replace(/\.gguf$/i, '');
 export const modelLabel = modelKey;
 export const modelOptions = rows => [...new Set(rows.map(row => modelKey(row.model)))].sort((a, b) => a.localeCompare(b)).map(value => [value, modelLabel(value)]);
+export const GPU_GROUPS = Object.freeze([
+  { id: 'amd', label: 'AMD' }, { id: 'nvidia', label: '英伟达' },
+  { id: 'intel', label: '英特尔' }, { id: 'other', label: '其他' }
+]);
+export function gpuGroup(value) {
+  const name = String(value ?? '');
+  if (/\b(?:AMD|ATI|Radeon)\b/i.test(name)) return 'amd';
+  if (/\b(?:NVIDIA|GeForce|Quadro|Tesla|NVS)\b|\b(?:RTX|GTX)\s*\d/i.test(name)) return 'nvidia';
+  if (/\bIntel\b|\bArc(?:\(TM\))?\s+(?:[AB]\d|Pro\b)|\bIris\b|\bUHD\s+Graphics\b/i.test(name)) return 'intel';
+  return 'other';
+}
+export function gpuGroups(options) {
+  return GPU_GROUPS.map(group => ({ ...group, options: options.filter(([value]) => gpuGroup(value) === group.id) }));
+}
+const budget = (resolved, configured, kind) => {
+  if (Number.isSafeInteger(resolved) && resolved >= 0) return { bytes: resolved, text: null, kind };
+  if (typeof configured === 'string' && configured.trim()) {
+    const original = configured.trim();
+    let value = original;
+    // Older reports serialized Option<SizeSpec> with Rust's Debug formatter.
+    // Decode only known variants; never evaluate arbitrary configuration text.
+    for (let depth = 0; depth < 8; depth++) {
+      const option = /^Some\(\s*([\s\S]*)\s*\)$/.exec(value);
+      if (!option) break;
+      value = option[1].trim();
+    }
+    if (/^None$/i.test(value)) return { bytes: null, text: null, kind: 'missing' };
+    const absolute = /^(?:Bytes|FrozenAutomaticBytes)\(\s*(\d+)\s*\)$/.exec(value);
+    const digits = absolute?.[1] ?? (/^\d+$/.test(value) ? value : null);
+    if (digits !== null && Number.isSafeInteger(Number(digits))) return { bytes: Number(digits), text: null, kind: 'configured' };
+    // INFR's documented `g` alias uses GiB, including in older manual reports.
+    const gib = /^(\d+(?:\.\d+)?)\s*(?:g|gib)$/i.exec(value);
+    const gibBytes = gib ? Number(gib[1]) * 1073741824 : NaN;
+    if (Number.isSafeInteger(gibBytes) && gibBytes >= 0) return { bytes: gibBytes, text: null, kind: 'configured' };
+    const percentage = /^Percent\(\s*([+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)\s*\)$/.exec(value);
+    const percent = percentage ? Number(percentage[1]) * 100 : NaN;
+    // SizeSpec::Percent stores a fraction (0.8 means 80%), not a byte count.
+    if (Number.isFinite(percent) && percent > 0) return { bytes: null, text: Number(percent.toPrecision(12)) + '%', kind: 'configured' };
+    return { bytes: null, text: original, kind: 'configured' };
+  }
+  return { bytes: null, text: null, kind: 'missing' };
+};
+// These are allocation ceilings / resident targets, not sampled process memory.
+export const engineBudget = row => ({ ram: budget(row.actual_ram_budget, row.ram_budget, 'target'), vram: budget(row.actual_vram_budget, row.vram_budget, 'ceiling') });
+export function rowConcurrency(row) {
+  if (row.kind === 'prefill' || row.kind === 'manual_prefill') return null;
+  return Number.isSafeInteger(row.slots) && row.slots > 0 ? row.slots : null;
+}
 export const BENCHMARK_PAGE_SIZE = 25;
 export function resultPage(rows, requestedPage = 1) {
   const pages = Math.max(1, Math.ceil(rows.length / BENCHMARK_PAGE_SIZE));

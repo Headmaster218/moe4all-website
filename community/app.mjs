@@ -1,5 +1,5 @@
 import { MAX_ARMOR_BYTES } from './submission-limits.mjs';
-import { filterRows, filterValues, comparisonError, csv, strategyNames, strategyOf, capacityGiB, rangeBounds, modelKey, modelLabel, modelOptions, resultPage } from './ui-model.mjs';
+import { filterRows, filterValues, comparisonError, csv, strategyNames, strategyOf, capacityGiB, rangeBounds, modelKey, modelLabel, modelOptions, resultPage, gpuGroups, engineBudget, rowConcurrency } from './ui-model.mjs';
 import { loadLeaderboard } from './leaderboard-loader.mjs';
 import { assembleIndex, indexRows, provenanceLinks } from './leaderboard-model.mjs';
 import { receiptHandoff, receiptCredential, verifiedReceipt } from './receipt-model.mjs';
@@ -107,6 +107,14 @@ function inspector(row) {
   const source = links ? ui`<div class="source-actions"><a class="button small" data-provenance="view" href="${escape(links.view)}" target="_blank" rel="noopener noreferrer">${icon('code-xml')}查看原件</a><a class="button small" data-provenance="download" href="${escape(links.download)}" target="_blank" rel="noopener noreferrer">${icon('download')}下载 .m4b</a></div>` : '';
   return `<div class="section-label">SAMPLE INSPECTOR ${iconButton('sample', 'arrow-up-right', '打开样本详情', `data-id="${escape(row.id)}"`)}</div><h2 class="inspect-device">${escape(row.gpu)}</h2><div class="tags">${tag(strategyLabel(row), 'blue')}${tag(contextLabel(row.context) + ' · ' + slotsLabel(row))}${row.status !== 'ok' ? tag(resultLabel(row.status), row.status === 'failed' ? 'red' : 'amber') : ''}</div><div class="inspect-score">${fmt(row[state.metric])}<small>tok/s</small></div>${spark(row)}${detailList(row)}<div class="inspect-foot">${escape(row.report_id)}<br>${escape(row.date || '')}<br>${t(row.demo ? '本地演示样本' : '社区提交 · 未独立复测')}</div>${source}`;
 }
+const memorySize = value => Number.isFinite(value) && value >= 0 ? (value / 1073741824).toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' GiB' : '—';
+function budgetCell(row) {
+  const values = engineBudget(row), labels = { target: '目标', ceiling: '上限', configured: '配置', missing: '' };
+  return ['vram', 'ram'].map(key => {
+    const value = values[key], text = value.bytes === null ? value.text || '—' : memorySize(value.bytes);
+    return `<div class="budget-line"><small>${key.toUpperCase()}</small><span class="mono">${escape(text)}</span><small class="budget-kind">${t(labels[value.kind])}</small></div>`;
+  }).join('');
+}
 function table(rows) {
   const page = resultPage(rows, state.pageNumber);
   state.pageNumber = page.pageNumber;
@@ -114,12 +122,13 @@ function table(rows) {
   const body = part.map((r, i) => `<tr class="${state.selected === r.id ? 'selected' : ''}" data-row="${escape(r.id)}" tabindex="0" aria-selected="${state.selected === r.id}">
     <td><input type="checkbox" data-compare="${escape(r.id)}" aria-label="${t('对比')} ${escape(r.gpu)}" ${state.compare.includes(r.id) ? 'checked' : ''}></td>
     <td class="rank">${String(offset + i + 1).padStart(2, '0')}</td>
-    <td><button class="sort device" data-action="sample" data-id="${escape(r.id)}">${escape(r.gpu)}</button><div class="device-sub">${escape(r.backend || t('未提供 Backend'))} · ${escape(r.os || t('未提供系统'))} · v${escape(r.engine)}<br>${escape(modelLabel(r.model))} · ${contextLabel(r.context)} / ${slotsLabel(r)} · MTP ${flag(r.mtp)}<br>${escape(strategyLabel(r))}${r.profile === 'manual' ? ' · ' + t('手动实测') : ''}</div></td>
+    <td><button class="sort device" data-action="sample" data-id="${escape(r.id)}">${escape(r.gpu)}</button><div class="device-sub">${escape(r.backend || t('未提供 Backend'))} · ${escape(r.os || t('未提供系统'))} · v${escape(r.engine)}<br>${escape(modelLabel(r.model))} · ${contextLabel(r.context)} · MTP ${flag(r.mtp)}<br>${escape(strategyLabel(r))}${r.profile === 'manual' ? ' · ' + t('手动实测') : ''}</div></td>
+    <td class="concurrency-cell"><strong>${rowConcurrency(r) === null ? '—' : '×' + rowConcurrency(r)}</strong><div class="device-sub">${r.kind === 'prefill' || r.kind === 'manual_prefill' ? 'Prefill' : t('并发')}</div></td>
     <td><span class="number">${fmt(r.decode)}</span><div class="device-sub">${r.sections ? t('后段') + ' ' + fmt(r.sections[2]) + ' tok/s' : state.metric === 'decode' ? resultLabel(r.status) : '—'}</div></td>
     <td><span class="number secondary">${fmt(r.prefill)}</span><div class="device-sub">${state.metric === 'prefill' && r.status !== 'ok' ? resultLabel(r.status) : 'tok/s'}</div></td>
-    <td><span class="mono">${gib(r.vram_bytes)}</span><div class="device-sub">${gib(r.ram_bytes)} RAM</div></td>
-    <td><span class="source-name">${t(r.demo ? '本地演示' : '社区提交')}</span><div class="device-sub">${escape(r.date?.slice(0, 10) || t('已收录'))}</div></td></tr>`).join('');
-  return ui`<div class="table-scroll"><table class="data-table"><colgroup><col class="col-check"><col class="col-rank"><col class="col-device"><col class="col-rate"><col class="col-rate"><col class="col-memory"><col class="col-source"></colgroup><thead><tr><th>±</th><th>#</th><th>设备 / 环境</th><th><button class="sort" data-action="sort" data-metric="decode" aria-pressed="${state.metric === 'decode'}">Decode ${icon('arrow-down')}</button></th><th><button class="sort" data-action="sort" data-metric="prefill" aria-pressed="${state.metric === 'prefill'}">Prefill ${icon('arrow-down')}</button></th><th>VRAM / RAM</th><th>来源</th></tr></thead><tbody>${body}</tbody></table></div>${!rows.length ? empty('这个条件下还没有样本', t('换个筛选条件，或提交你的第一份实测'), 'search') : ''}<div class="table-footer"><span>社区提交 · 对比需保持测试条件一致</span><div class="pager"><span>${rows.length ? offset + 1 : 0}–${page.end} / ${rows.length}</span>${iconButton('prev', 'arrow-left', '上一页', !page.hasPrevious ? 'disabled' : '')}${iconButton('next', 'arrow-up-right', '下一页', !page.hasNext ? 'disabled' : '')}</div></div>`;
+    <td class="machine-memory"><div><small>VRAM</small> <span class="mono">${memorySize(r.vram_bytes)}</span></div><div><small>RAM</small> <span class="mono">${memorySize(r.ram_bytes)}</span></div></td>
+    <td class="engine-budget">${budgetCell(r)}</td></tr>`).join('');
+  return ui`<div class="table-scroll"><table class="data-table benchmark-table"><colgroup><col class="col-check"><col class="col-rank"><col class="col-device"><col class="col-concurrency"><col class="col-rate"><col class="col-rate"><col class="col-capacity"><col class="col-budget"></colgroup><thead><tr><th>±</th><th>#</th><th>设备 / 环境</th><th>并发</th><th><button class="sort" data-action="sort" data-metric="decode" aria-pressed="${state.metric === 'decode'}">Decode ${icon('arrow-down')}</button></th><th><button class="sort" data-action="sort" data-metric="prefill" aria-pressed="${state.metric === 'prefill'}">Prefill ${icon('arrow-down')}</button></th><th>机器总容量<small>VRAM / RAM</small></th><th title="预算是 RAM 目标和 VRAM 分配上限，不是实测占用">引擎内存预算<small>非实测占用</small></th></tr></thead><tbody>${body}</tbody></table></div>${!rows.length ? empty('这个条件下还没有样本', t('换个筛选条件，或提交你的第一份实测'), 'search') : ''}<div class="table-footer"><span>对比需保持测试条件一致</span><div class="pager"><span>${rows.length ? offset + 1 : 0}–${page.end} / ${rows.length}</span>${iconButton('prev', 'arrow-left', '上一页', !page.hasPrevious ? 'disabled' : '')}${iconButton('next', 'arrow-up-right', '下一页', !page.hasNext ? 'disabled' : '')}</div></div>`;
 }
 function renderBenchmarks() {
   const rows = activeRows();
@@ -170,6 +179,7 @@ function filterPanel() {
   return ui`<section class="filter-workspace" aria-label="筛选性能记录"><div class="filter-toolbar"><label class="search">${icon('search')}<input type="search" id="search" value="${escape(state.filters.search)}" placeholder="搜索 GPU、CPU 或模型" aria-label="搜索设备"></label><div class="actions">${button('toggle-filters', '筛选' + (count ? ' · ' + count : ''), 'sliders-horizontal', '', `aria-expanded="${state.filtersOpen}" aria-controls="facet-panel"`)}${button('reset-filters', '清空条件', 'rotate-ccw', '', count || state.filters.search ? '' : 'disabled')}</div></div><div class="facet-panel" id="facet-panel" ${state.filtersOpen ? '' : 'hidden'}>${groups.map(([key, label, options]) => {
     const base = filterRows(state.rows, { ...state.filters, [key]: [], [key + 'Min']: '', [key + 'Max']: '' });
     if (key === 'context') return contextFacet(base, options);
+    if (key === 'gpu') return `<fieldset class="facet facet-gpu"><legend>${label}</legend><div class="gpu-groups">${gpuGroups(options).map(group => `<section class="gpu-group" aria-label="${t(group.label)}"><h3>${t(group.label)}</h3>${group.options.length ? facetChoices(key, group.options, base) : `<p class="gpu-group-empty">${t('暂无型号')}</p>`}</section>`).join('')}</div></fieldset>`;
     return `<fieldset class="facet facet-${key}"><legend>${label}</legend>${facetChoices(key, options, base)}${['ram', 'vram'].includes(key) ? rangeForm(key) : ''}</fieldset>`;
   }).join('')}</div><div class="active-filters" ${selected.length ? '' : 'hidden'}>${selected.join('')}</div></section>`;
 }
