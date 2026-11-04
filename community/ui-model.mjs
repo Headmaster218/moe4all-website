@@ -10,6 +10,18 @@ export function rangeBounds(rows, key, metadata) {
 }
 export const cohortKey = row => JSON.stringify([row.model, row.quant, row.context, row.slots, row.mtp, row.kv_k, row.kv_v, row.engine, strategyOf(row), row.profile, row.kind, row.depth_mode, row.depth_tokens, row.prompt_tokens, row.warmup_tokens, row.measured_tokens]);
 export const filterValues = value => (Array.isArray(value) ? value : value === undefined || value === '' ? [] : [value]).map(String);
+// A report may use the GGUF filename or its model name. Keep quantization,
+// revision and shard suffixes intact; only the optional file extension is cosmetic.
+export const modelKey = value => String(value ?? '').trim().replace(/\.gguf$/i, '');
+export const modelLabel = modelKey;
+export const modelOptions = rows => [...new Set(rows.map(row => modelKey(row.model)))].sort((a, b) => a.localeCompare(b)).map(value => [value, modelLabel(value)]);
+export const BENCHMARK_PAGE_SIZE = 25;
+export function resultPage(rows, requestedPage = 1) {
+  const pages = Math.max(1, Math.ceil(rows.length / BENCHMARK_PAGE_SIZE));
+  const pageNumber = Math.max(1, Math.min(Number.isInteger(requestedPage) ? requestedPage : 1, pages));
+  const offset = (pageNumber - 1) * BENCHMARK_PAGE_SIZE;
+  return { pageNumber, offset, rows: rows.slice(offset, offset + BENCHMARK_PAGE_SIZE), end: Math.min(offset + BENCHMARK_PAGE_SIZE, rows.length), hasPrevious: pageNumber > 1, hasNext: pageNumber < pages };
+}
 export function rangeError(min, max, unit = '') {
   const present = value => value !== '' && value !== undefined && value !== null;
   if ([min, max].some(value => present(value) && (!Number.isSafeInteger(Number(value)) || Number(value) < 0))) return '请输入非负整数' + unit;
@@ -17,9 +29,10 @@ export function rangeError(min, max, unit = '') {
 }
 export function filterRows(rows, filters) {
   const selected = Object.fromEntries(['model', 'gpu', 'context', 'slots', 'engine', 'kv', 'mtp', 'os', 'status', 'strategy', 'ram', 'vram'].map(key => [key, new Set(filterValues(filters[key]))]));
+  selected.model = new Set([...selected.model].map(modelKey));
   const search = (filters.search || '').trim().toLowerCase();
   const ranges = Object.fromEntries(['context', 'ram', 'vram'].map(key => { const min = filters[key + 'Min'], max = filters[key + 'Max']; return [key, { min: min === '' || min === undefined || min === null ? null : Number(min), max: max === '' || max === undefined || max === null ? null : Number(max), invalid: !!rangeError(min, max) }]; }));
-  const matches = (key, value) => !selected[key].size || selected[key].has(String(value));
+  const matches = (key, value) => !selected[key].size || selected[key].has(key === 'model' ? modelKey(value) : String(value));
   const inRange = (value, key) => {
     const { min, max, invalid } = ranges[key];
     if (min === null && max === null) return true;

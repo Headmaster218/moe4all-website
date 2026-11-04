@@ -1,5 +1,5 @@
 import { MAX_ARMOR_BYTES } from './submission-limits.mjs';
-import { filterRows, filterValues, comparisonError, csv, strategyNames, strategyOf, capacityGiB, rangeBounds } from './ui-model.mjs';
+import { filterRows, filterValues, comparisonError, csv, strategyNames, strategyOf, capacityGiB, rangeBounds, modelKey, modelLabel, modelOptions, resultPage } from './ui-model.mjs';
 import { loadLeaderboard } from './leaderboard-loader.mjs';
 import { assembleIndex, indexRows, provenanceLinks } from './leaderboard-model.mjs';
 import { receiptHandoff, receiptCredential, verifiedReceipt } from './receipt-model.mjs';
@@ -108,8 +108,9 @@ function inspector(row) {
   return `<div class="section-label">SAMPLE INSPECTOR ${iconButton('sample', 'arrow-up-right', '打开样本详情', `data-id="${escape(row.id)}"`)}</div><h2 class="inspect-device">${escape(row.gpu)}</h2><div class="tags">${tag(strategyLabel(row), 'blue')}${tag(contextLabel(row.context) + ' · ' + slotsLabel(row))}${row.status !== 'ok' ? tag(resultLabel(row.status), row.status === 'failed' ? 'red' : 'amber') : ''}</div><div class="inspect-score">${fmt(row[state.metric])}<small>tok/s</small></div>${spark(row)}${detailList(row)}<div class="inspect-foot">${escape(row.report_id)}<br>${escape(row.date || '')}<br>${t(row.demo ? '本地演示样本' : '社区提交 · 未独立复测')}</div>${source}`;
 }
 function table(rows) {
-  state.pageNumber = Math.max(1, Math.min(state.pageNumber, Math.ceil(rows.length / 8) || 1));
-  const offset = (state.pageNumber - 1) * 8, part = rows.slice(offset, offset + 8);
+  const page = resultPage(rows, state.pageNumber);
+  state.pageNumber = page.pageNumber;
+  const { offset, rows: part } = page;
   const body = part.map((r, i) => `<tr class="${state.selected === r.id ? 'selected' : ''}" data-row="${escape(r.id)}" tabindex="0" aria-selected="${state.selected === r.id}">
     <td><input type="checkbox" data-compare="${escape(r.id)}" aria-label="${t('对比')} ${escape(r.gpu)}" ${state.compare.includes(r.id) ? 'checked' : ''}></td>
     <td class="rank">${String(offset + i + 1).padStart(2, '0')}</td>
@@ -118,12 +119,12 @@ function table(rows) {
     <td><span class="number secondary">${fmt(r.prefill)}</span><div class="device-sub">${state.metric === 'prefill' && r.status !== 'ok' ? resultLabel(r.status) : 'tok/s'}</div></td>
     <td><span class="mono">${gib(r.vram_bytes)}</span><div class="device-sub">${gib(r.ram_bytes)} RAM</div></td>
     <td><span class="source-name">${t(r.demo ? '本地演示' : '社区提交')}</span><div class="device-sub">${escape(r.date?.slice(0, 10) || t('已收录'))}</div></td></tr>`).join('');
-  return ui`<div class="table-scroll"><table class="data-table"><colgroup><col class="col-check"><col class="col-rank"><col class="col-device"><col class="col-rate"><col class="col-rate"><col class="col-memory"><col class="col-source"></colgroup><thead><tr><th>±</th><th>#</th><th>设备 / 环境</th><th><button class="sort" data-action="sort" data-metric="decode" aria-pressed="${state.metric === 'decode'}">Decode ${icon('arrow-down')}</button></th><th><button class="sort" data-action="sort" data-metric="prefill" aria-pressed="${state.metric === 'prefill'}">Prefill ${icon('arrow-down')}</button></th><th>VRAM / RAM</th><th>来源</th></tr></thead><tbody>${body}</tbody></table></div>${!rows.length ? empty('这个条件下还没有样本', t('换个筛选条件，或提交你的第一份实测'), 'search') : ''}<div class="table-footer"><span>社区提交 · 对比需保持测试条件一致</span><div class="pager"><span>${rows.length ? offset + 1 : 0}–${Math.min(offset + 8, rows.length)} / ${rows.length}</span>${iconButton('prev', 'arrow-left', '上一页', state.pageNumber <= 1 ? 'disabled' : '')}${iconButton('next', 'arrow-up-right', '下一页', offset + 8 >= rows.length ? 'disabled' : '')}</div></div>`;
+  return ui`<div class="table-scroll"><table class="data-table"><colgroup><col class="col-check"><col class="col-rank"><col class="col-device"><col class="col-rate"><col class="col-rate"><col class="col-memory"><col class="col-source"></colgroup><thead><tr><th>±</th><th>#</th><th>设备 / 环境</th><th><button class="sort" data-action="sort" data-metric="decode" aria-pressed="${state.metric === 'decode'}">Decode ${icon('arrow-down')}</button></th><th><button class="sort" data-action="sort" data-metric="prefill" aria-pressed="${state.metric === 'prefill'}">Prefill ${icon('arrow-down')}</button></th><th>VRAM / RAM</th><th>来源</th></tr></thead><tbody>${body}</tbody></table></div>${!rows.length ? empty('这个条件下还没有样本', t('换个筛选条件，或提交你的第一份实测'), 'search') : ''}<div class="table-footer"><span>社区提交 · 对比需保持测试条件一致</span><div class="pager"><span>${rows.length ? offset + 1 : 0}–${page.end} / ${rows.length}</span>${iconButton('prev', 'arrow-left', '上一页', !page.hasPrevious ? 'disabled' : '')}${iconButton('next', 'arrow-up-right', '下一页', !page.hasNext ? 'disabled' : '')}</div></div>`;
 }
 function renderBenchmarks() {
   const rows = activeRows();
   if (!rows.some(r => r.id === state.selected)) state.selected = rows[0]?.id || '';
-  const models = filterValues(state.filters.model), selectedModels = models.length ? models : [...new Set(state.rows.map(r => r.model))];
+  const models = [...new Set(filterValues(state.filters.model).map(modelKey))], selectedModels = models.length ? models : modelOptions(state.rows).map(([value]) => value);
   const strategies = filterValues(state.filters.strategy), title = selectedModels.length === 1 ? modelLabel(selectedModels[0]) : ui`${selectedModels.length} 个模型 · 跨条件浏览`;
   const peak = rows.find(row => row[state.metric] !== null), info = state.dataInfo;
   const status = ui`<div class="dataset-status">${tag(t(preview ? '本地演示数据' : info?.stale ? '离线缓存' : 'Git 数据快照'), preview || info?.stale ? 'amber' : 'mint')}<span>${state.index?.reports.length ?? 0} 份报告 · ${escape(info?.manifest.version.slice(0, 10) || '')}</span>${info?.stale ? ui`<span>新版本暂时不可用，当前为已校验的缓存版本</span>` : ''}</div>`;
@@ -143,12 +144,11 @@ function selectRow(id) {
   icons();
   return row;
 }
-const modelLabel = value => value.replace(/\.gguf$/i, '').replace(/-A3B-I-Balanced$/, ' · I-Balanced').replace(/-4\.27bpw$/, ' · 4.27 bpw');
 function facets() {
   const unique = key => [...new Set(state.rows.map(r => String(r[key])))];
   const capacities = key => [...new Set(state.rows.map(r => capacityGiB(r[key + '_bytes'])))].sort((a, b) => (a ?? Infinity) - (b ?? Infinity)).map(v => [v === null ? 'unknown' : String(v), v === null ? '未提供' : String(v)]);
   return [
-    ['model', '模型', unique('model').map(v => [v, modelLabel(v)])],
+    ['model', '模型', modelOptions(state.rows)],
     ['gpu', 'GPU', unique('gpu').map(v => [v, v])],
     ['context', '上下文 / tokens', unique('context').sort((a, b) => a - b).map(v => [v, contextLabel(Number(v))])],
     ['ram', 'RAM 总容量 / GiB', capacities('ram')],
@@ -176,7 +176,7 @@ function filterPanel() {
 function facetChoices(key, options, base) {
   const counts = new Map();
   for (const row of base) {
-    const value = key === 'strategy' ? strategyOf(row) : key === 'kv' ? `${row.kv_k || '?'}/${row.kv_v || '?'}` : ['ram', 'vram'].includes(key) ? capacityGiB(row[key + '_bytes']) ?? 'unknown' : row[key];
+    const value = key === 'model' ? modelKey(row.model) : key === 'strategy' ? strategyOf(row) : key === 'kv' ? `${row.kv_k || '?'}/${row.kv_v || '?'}` : ['ram', 'vram'].includes(key) ? capacityGiB(row[key + '_bytes']) ?? 'unknown' : row[key];
     counts.set(String(value), (counts.get(String(value)) || 0) + 1);
   }
   return `<div class="facet-options">${options.map(([value, text]) => {
