@@ -29,9 +29,9 @@
   menu.querySelectorAll("a").forEach(link => link.addEventListener("click", closeMenu));
   document.addEventListener("keydown", event => { if (event.key === "Escape") closeMenu(); });
 
-  let selectedContext = "4000", selectedModel = "qwen35";
+  let selectedContext = "6000", selectedModel = "qwen35";
   const maximumDecode = shortContext => Math.max(...benchmarks.models.flatMap(model =>
-    Object.entries(model.results).filter(([context]) => (context === "4000") === shortContext).flatMap(([, result]) => result.decode)));
+    Object.entries(model.results).filter(([context]) => (context === "6000") === shortContext).flatMap(([, result]) => result.decode)));
   const contextButtons = [...document.querySelectorAll("[data-context]")];
   function syncContextButtons() {
     const model = benchmarks.models.find(item => item.id === selectedModel);
@@ -46,9 +46,13 @@
   function renderBenchmark() {
     const model = benchmarks.models.find(item => item.id === selectedModel);
     const result = model.results[selectedContext];
-    const chartMaximum = maximumDecode(selectedContext === "4000");
-    document.querySelectorAll("[data-decode-speed]").forEach(element => { element.innerHTML = `${result.decode[Number(element.dataset.decodeSpeed)].toFixed(2)} <small>tok/s</small>`; });
-    document.querySelectorAll("[data-decode-bar]").forEach(element => { element.style.width = `${result.decode[Number(element.dataset.decodeBar)] / chartMaximum * 100}%`; });
+    const chartMaximum = maximumDecode(selectedContext === "6000");
+    document.querySelectorAll("[data-decode-speed]").forEach(element => {
+      const value = result.decode[Number(element.dataset.decodeSpeed)];
+      element.closest(".benchmark-row").hidden = !Number.isFinite(value);
+      element.innerHTML = Number.isFinite(value) ? `${value.toFixed(2)} <small>tok/s</small>` : "";
+    });
+    document.querySelectorAll("[data-decode-bar]").forEach(element => { element.style.width = `${(result.decode[Number(element.dataset.decodeBar)] || 0) / chartMaximum * 100}%`; });
     document.querySelector("#prefill-speed").textContent = Number.isFinite(result.prefill) ? result.prefill.toFixed(2) : "—";
     document.querySelector(".prefill-result>span:last-child").textContent = Number.isFinite(result.prefill) ? (language === "en" ? "Single cold request" : "单路冷请求") : (language === "en" ? "Decode only" : "仅 Decode");
     document.querySelector("[data-benchmark-label='heading']").textContent = language === "en" ? "MEASURED THROUGHPUT" : "实测吞吐量";
@@ -74,7 +78,7 @@
       name.scope = "row";
       name.textContent = `${model.name} / ${context / 1000}K`;
       row.append(name);
-      for (const number of [...result.decode, result.prefill]) {
+      for (const number of [...Array.from({ length: 4 }, (_, i) => result.decode[i]), result.prefill]) {
         const cell = document.createElement("td"); cell.textContent = Number.isFinite(number) ? number.toFixed(2) : "—"; row.append(cell);
       }
       table.append(row);

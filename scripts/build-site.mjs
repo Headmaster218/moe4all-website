@@ -16,7 +16,7 @@ for (const model of benchmarks.models) {
     const result = model.results[context];
     if (!result) continue;
     const values = result.prefill === undefined ? result.decode : [...result.decode, result.prefill];
-    if (result.decode.length !== 3 || values.some(value => !Number.isFinite(value) || value <= 0)) throw new Error(`Invalid benchmark data: ${model.id}/${context}`);
+    if (![3, 4].includes(result.decode.length) || values.some(value => !Number.isFinite(value) || value <= 0)) throw new Error(`Invalid benchmark data: ${model.id}/${context}`);
   }
 }
 const data = 'window.MOE4ALL_DATA = ' + JSON.stringify({ site, releases, benchmarks, demo }, null, 2).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029') + ';\n';

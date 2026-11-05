@@ -134,7 +134,7 @@ window.MOE4ALL_DATA = {
       "residentGpuLayers": 16
     },
     "contexts": [
-      4000,
+      6000,
       30000,
       150000
     ],
@@ -152,27 +152,33 @@ window.MOE4ALL_DATA = {
           "method": "Local GGUF file bytes minus aligned metadata header, multiplied by 8 / total tensor elements. Includes tensor alignment padding, excludes mmproj; storage-equivalent, not a uniform tensor quantization."
         },
         "results": {
-          "4000": {
+          "6000": {
             "decode": [
-              120.98,
-              164.64,
-              201.28
+              154.6,
+              195.3,
+              229.4,
+              248.3
             ],
             "decodeSegments": [
               [
-                108.82924582892765,
-                118.57658637707449,
-                120.97746947205847
+                155.1,
+                152.5,
+                156.2
               ],
               [
-                162.15867224943122,
-                164.29601017360517,
-                164.64254336173826
+                197,
+                195.4,
+                193.5
               ],
               [
-                204.63428765373476,
-                202.4771720559045,
-                201.2831421396867
+                232.9,
+                231.4,
+                224.1
+              ],
+              [
+                253.2,
+                250.2,
+                242
               ]
             ],
             "prefill": 3604.71,
@@ -189,19 +195,20 @@ window.MOE4ALL_DATA = {
               "mtp": false,
               "residentGpuLayers": 16,
               "decode": {
-                "sourceTask": "20261016-002027-d0-decode-123-a1",
+                "version": "1.3.0",
+                "source": "MoE4All README performance table, maintainer's current local revision",
                 "promptTokensRange": [
-                  4096,
-                  4096
+                  6144,
+                  6144
                 ],
-                "outputTokensPerLane": 512,
-                "measuredWindow": [
-                  342,
-                  512
+                "outputTokensPerLane": 1024,
+                "warmupTokensPerLane": 512,
+                "sectionTokens": [
+                  341,
+                  341,
+                  342
                 ],
-                "measuredRoundsPerConcurrency": 3,
-                "thinking": true,
-                "note": "Short-context Decode, not a full 2000-token prompt. Aggregate stream-window throughput from the original manifest; not a three-round mean."
+                "measuredRoundsPerConcurrency": 1
               },
               "prefill": {
                 "sourceTask": "20261016-032448-qwen35-2k-prefill-site-3bc7",
@@ -232,17 +239,19 @@ window.MOE4ALL_DATA = {
           },
           "30000": {
             "decode": [
-              80.49,
-              118.34,
-              110.78
+              125.7,
+              152,
+              180.1,
+              192.2
             ],
             "prefill": 2749.06
           },
           "150000": {
             "decode": [
-              41.91,
-              50.87,
-              49.27
+              65.1,
+              70.5,
+              78,
+              81
             ],
             "prefill": 1169.4
           }

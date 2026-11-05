@@ -75,10 +75,10 @@ MoE4All Engine 协调 **VRAM、RAM 和 SSD**：常用的专家靠近 GPU，需�
 
 30K 上下文下的 Decode 实测：
 
-| 模型 | 单会话 | 双会话总吞吐量 | 三会话总吞吐量 |
-| --- | ---: | ---: | ---: |
-| **FlashNext-176B · 4.27 bpw** | **50.44 tok/s** | 66.19 tok/s | **71.20 tok/s** |
-| **Qwen3.6-35B · APEX I-Balanced · ≈5.91 bpw** | 80.49 tok/s | **118.34 tok/s** | 110.78 tok/s |
+| 模型 | 单会话 | 双会话总吞吐量 | 三会话总吞吐量 | 四会话总吞吐量 |
+| --- | ---: | ---: | ---: | ---: |
+| **FlashNext-176B · 4.27 bpw** | **50.44 tok/s** | 66.19 tok/s | **71.20 tok/s** | — |
+| **Qwen3.6-35B · APEX I-Balanced · ≈5.91 bpw** | 125.70 tok/s | **152.00 tok/s** | 180.10 tok/s | 192.20 tok/s |
 
 同样测到了 **150K 长上下文**。30K 冷请求的 Prefill：FlashNext **1414.75 tok/s**，35B **2749.06 tok/s**。
 

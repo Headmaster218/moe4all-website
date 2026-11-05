@@ -60,12 +60,12 @@ const assert = require('node:assert/strict');
         for (const context of benchmarks.contexts) {
           if (!model.results[context]) continue;
           await page.locator(`[data-context="${context}"]`).click();
-          const values = await page.locator('[data-decode-speed]').allTextContents();
+          const values = await page.locator('.benchmark-row:visible [data-decode-speed]').allTextContents();
           assert.deepEqual(values.map(value => Number.parseFloat(value)), model.results[context].decode);
           assert.equal(await page.locator('#prefill-speed').innerText(), Number.isFinite(model.results[context].prefill) ? model.results[context].prefill.toFixed(2) : '—');
           const maximum = Math.max(...benchmarks.models.flatMap(item => Object.entries(item.results)
             .filter(([depth]) => (depth === String(shortContext)) === (context === shortContext)).flatMap(([, result]) => result.decode)));
-          const widths = await page.locator('[data-decode-bar]').evaluateAll(bars => bars.map(bar => parseFloat(bar.style.width)));
+          const widths = await page.locator('.benchmark-row:visible [data-decode-bar]').evaluateAll(bars => bars.map(bar => parseFloat(bar.style.width)));
           widths.forEach((width, index) => assert.ok(Math.abs(width - model.results[context].decode[index] / maximum * 100) < .001, 'Short and long-context chart scales must be independent'));
         }
       }

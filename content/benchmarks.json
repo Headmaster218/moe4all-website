@@ -9,25 +9,25 @@
   "metricDefinition": "Within each measured round: total output tokens / slowest lane Decode duration. Arithmetic mean over three measured rounds after one warmup round.",
   "hardware": { "gpu": "AMD Radeon RX 7900 XTX", "vramBudgetGiB": 24, "ramBudgetGiB": 48, "os": "Windows" },
   "settings": { "mtp": false, "temperature": 0, "thinking": false, "kv": "Q8_0 K/V", "contextCapacity": 163840, "ubatch": 4096, "cpuThreads": 10, "configuredDecodeSlots": 3, "outputTokensPerLane": 512, "warmupRounds": 1, "measuredDecodeRounds": 3, "coldPrefillRequests": 1, "prefillCachedTokens": 0, "residentGpuLayers": 16 },
-  "contexts": [4000, 30000, 150000],
+  "contexts": [6000, 30000, 150000],
   "models": [
     {
       "id": "qwen35", "name": "Qwen3.6-35B · I-Balanced · ≈5.91 bpw", "label": "Qwen3.6-35B", "detail": "I-Balanced · ≈5.91 bpw", "quantization": "Qwen3.6-35B-A3B-APEX-I-Balanced",
       "storageEquivalent": { "parameters": 34660610688, "tensorPayloadBytes": 25613967872, "bpw": 5.911948431045486, "method": "Local GGUF file bytes minus aligned metadata header, multiplied by 8 / total tensor elements. Includes tensor alignment padding, excludes mmproj; storage-equivalent, not a uniform tensor quantization." },
       "results": {
-        "4000": {
-          "decode": [120.98, 164.64, 201.28],
-          "decodeSegments": [[108.82924582892765, 118.57658637707449, 120.97746947205847], [162.15867224943122, 164.29601017360517, 164.64254336173826], [204.63428765373476, 202.4771720559045, 201.2831421396867]],
+        "6000": {
+          "decode": [154.60, 195.30, 229.40, 248.30],
+          "decodeSegments": [[155.1, 152.5, 156.2], [197.0, 195.4, 193.5], [232.9, 231.4, 224.1], [253.2, 250.2, 242.0]],
           "prefill": 3604.71,
           "measurement": {
             "version": "1.0.1", "measuredOn": "2026-10-16", "binarySha256": "6160e6ee9676c404d1272eb0673619268fd7c6a2099f157b7d393b21b9d45906",
             "profile": "aggressive", "contextCapacity": 8192, "configuredSlots": 3, "ubatch": 4096, "cpuThreads": 10, "kv": "Q8_0 K/V", "mtp": false, "residentGpuLayers": 16,
-            "decode": { "sourceTask": "20261016-002027-d0-decode-123-a1", "promptTokensRange": [4096, 4096], "outputTokensPerLane": 512, "measuredWindow": [342, 512], "measuredRoundsPerConcurrency": 3, "thinking": true, "note": "Short-context Decode, not a full 2000-token prompt. Aggregate stream-window throughput from the original manifest; not a three-round mean." },
+            "decode": { "version": "1.3.0", "source": "MoE4All README performance table, maintainer's current local revision", "promptTokensRange": [6144, 6144], "outputTokensPerLane": 1024, "warmupTokensPerLane": 512, "sectionTokens": [341, 341, 342], "measuredRoundsPerConcurrency": 1 },
             "prefill": { "sourceTask": "20261016-032448-qwen35-2k-prefill-site-3bc7", "promptTokens": 8192, "measuredRounds": 3, "coldProcessPerRound": true, "thinking": false, "cachedTokens": [0, 0, 0], "milliseconds": [2738.372199999998, 2272.583000000006, 2243.428100000019], "samples": [2991.5582695442226, 3604.7088269163232, 3651.554511597644], "selectedSample": 2, "mean": 3415.9405360193964, "note": "Displayed Prefill uses the maintainer-selected third sample, rounded to two decimals. Each round starts a fresh process with SSD KV disabled; OS file and kernel caches are not cleared. Model startup and client HTTP overhead are excluded." }
           }
         },
-        "30000": { "decode": [80.49, 118.34, 110.78], "prefill": 2749.06 },
-        "150000": { "decode": [41.91, 50.87, 49.27], "prefill": 1169.40 }
+        "30000": { "decode": [125.70, 152.00, 180.10, 192.20], "prefill": 2749.06 },
+        "150000": { "decode": [65.10, 70.50, 78.00, 81.00], "prefill": 1169.40 }
       }
     },
     { "id": "flashnext", "name": "FlashNext-176B · 4.27 bpw", "label": "FlashNext-176B", "detail": "4.27 bpw", "quantization": "Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64", "results": { "30000": { "decode": [50.44, 66.19, 71.20], "prefill": 1414.75, "decodeSource": "Maintainer revision; exact revised build not supplied" }, "150000": { "decode": [44.16, 49.50, 45.47], "prefill": 1445.50 } } }
